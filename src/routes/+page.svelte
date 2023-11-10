@@ -1,45 +1,28 @@
 <script lang="ts">
 	import { TaskComponent } from '$lib';
 	import type { TODO } from '$lib/types';
+    import { formatDateISO } from '$lib/utils/date';
 
 	import '../todo.css';
 
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
 	let todos: TODO[] = [
-		{
+        {
 			id: 1,
-			date: '2023-11-10',
-			tasks: [
-				{
-					id: 1,
-					desc: 'Task one to do',
-					isDone: false
-				},
-				{
-					id: 2,
-					desc: 'Task two to do',
-					isDone: true
-				}
-			]
+			date: formatDateISO(yesterday),
+			tasks: []
 		},
 		{
 			id: 2,
-			date: '2023-11-09',
-			tasks: [
-				{
-					id: 1,
-					desc: 'Task one to do',
-					isDone: false
-				},
-				{
-					id: 2,
-					desc: 'Task two to do',
-					isDone: true
-				}
-			]
+			date: formatDateISO(new Date()),
+			tasks: []
 		}
 	];
 
 	const todoCount = todos.length;
+
 </script>
 
 <section class="dt-todo-container container max-w-screen-sm mx-auto px-3 py-3" data-theme="cupcake">
