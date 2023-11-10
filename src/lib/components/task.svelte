@@ -1,24 +1,26 @@
 <script lang="ts">
 	import type { TODO } from '$lib/types';
+	import { formatDateReadable } from '$lib/utils/date';
 
 	export let todo: TODO;
 	export let isOpen: boolean;
 
 	let todoDesc = '';
 	const addTodo = () => {
-		/* if (!todoDesc) return
-    let lastId = todos.length && todos.length > 1 ? todos[todos.length - 1].id
-        : (todos.length ? todos[0].id : 0);
+		if (!todoDesc) return
+        const todos = todo.tasks;
+        let lastId = todos.length && todos.length > 1 ? todos[todos.length - 1].id
+            : (todos.length ? todos[0].id : 0);
 
-    todos = [...todos, { id: lastId + 1, desc: todoDesc, isDone: false }]
-    todoDesc = '' */
+        todo.tasks = [...todos, { id: lastId + 1, desc: todoDesc, isDone: false }]
+        todoDesc = ''
 	};
 
 	const toggleCompleted = (e: MouseEvent): void => {
 		//@ts-ignore
-		/* const id = parseInt(e.target.value);
-        const index = todos.findIndex(todo => todo.id === id)
-        todos[index].isDone = !todos[index].isDone; */
+		const taskid = parseInt(e.target.value);
+        const index = todo.tasks.findIndex(todo => todo.id === taskid)
+        todo.tasks[index].isDone = !todo.tasks[index].isDone;
 	};
 </script>
 
@@ -30,7 +32,7 @@
 	{/if}
 
 	<div class="collapse-title text-xl font-medium">
-		{todo.date}
+		{formatDateReadable(todo.date)}
 	</div>
 	<div class="collapse-content">
 		<ul>
