@@ -1,7 +1,8 @@
 export type TODO = {
-    id: number
+    _id: string
     date: string
     tasks: Task[]
+    _rev?: string
 }
 
 export interface Task {
