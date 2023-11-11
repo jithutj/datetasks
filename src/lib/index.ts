@@ -1,9 +1,9 @@
-// place files you want to import through the `$lib` alias in this folder.
-
+import Database from './Database';
 import TaskComponent from './components/task.svelte';
 import type * as todoTypes from './types';
 
 export {
+    Database,
     TaskComponent,
     todoTypes
 }

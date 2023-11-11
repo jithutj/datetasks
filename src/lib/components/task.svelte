@@ -1,49 +1,81 @@
 <script lang="ts">
+	import { Database } from '$lib';
 	import type { TODO } from '$lib/types';
 	import { formatDateReadable } from '$lib/utils/date';
+	import { afterUpdate } from 'svelte';
 
 	export let todo: TODO;
 	export let isOpen: boolean;
+	export let containerId: string;
+
+	const db = Database.getInstance().getDB();
+
 	let editMode: boolean = false;
 	let editId: number = 0;
+	let todoClone: TODO = todo;
+	let triggerSync = false;
 
 	let todoDesc = '';
 
 	function scrollToBottom() {
-		let container = document.getElementById('dt-todo-container');
+		const container = document.getElementById(containerId);
 		//@ts-ignore
 		container.scrollTop = container.scrollHeight;
   	}
 
+	afterUpdate(() => {
+		scrollToBottom();
+	})
+
+	const persistState = async () => {
+		try {
+			const { rev } = await db.put(todoClone);
+			todoClone._rev = rev;
+			todo = todoClone;
+			triggerSync = false;
+		} catch (err) {
+			console.log(err);
+			alert('failed persist storage syncing')
+		}	
+	}
+
+	$: triggerSync && persistState()
+
 	const addTodo = () => {
 		if (!todoDesc) return
-        const todos = todo.tasks;
-        let lastId = todos.length && todos.length > 1 ? todos[todos.length - 1].id
-            : (todos.length ? todos[0].id : 0);
+		todoClone = todo;
+        const tasks = todoClone.tasks;
+        let lastId = tasks.length && tasks.length > 1 ? tasks[tasks.length - 1].id
+            : (tasks.length ? tasks[0].id : 0);
 
-        todo.tasks = [...todos, { id: lastId + 1, desc: todoDesc, isDone: false }]
+		todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }]
         todoDesc = ''
-		scrollToBottom();
+		triggerSync = true;
 	};
 
 	const updateTodo = () => {
-		const index = todo.tasks.findIndex(todo => todo.id === editId)
-		todo.tasks[index].desc = todoDesc;
+		todoClone = todo;
+		const index = todoClone.tasks.findIndex(task => task.id === editId)
+		todoClone.tasks[index].desc = todoDesc;
 		todoDesc = '';
 		editMode = false;
 		editId = 0;
+		triggerSync = true;
 	}
 
 	const removeTask = () => {
-		const index = todo.tasks.findIndex(todo => todo.id === editId)
-		todo.tasks.splice(index, 1);
+		todoClone = todo;
+		const index = todo.tasks.findIndex(task => task.id === editId)
+		todoClone.tasks.splice(index, 1);
+		triggerSync = true;
 	}
 
 	const toggleCompleted = (e: MouseEvent): void => {
 		//@ts-ignore
 		const taskid = parseInt(e.target.value);
-        const index = todo.tasks.findIndex(todo => todo.id === taskid)
-        todo.tasks[index].isDone = !todo.tasks[index].isDone;
+        const index = todo.tasks.findIndex(task => task.id === taskid)
+        todoClone.tasks[index].isDone = !todo.tasks[index].isDone;
+		triggerSync = true;
 	};
 </script>
 
