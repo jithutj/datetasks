@@ -23,10 +23,6 @@
 		container.scrollTop = container.scrollHeight;
   	}
 
-	afterUpdate(() => {
-		scrollToBottom();
-	})
-
 	const persistState = async () => {
 		try {
 			const { rev } = await db.put(todoClone);
@@ -51,6 +47,7 @@
 		todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }]
         todoDesc = ''
 		triggerSync = true;
+		scrollToBottom();
 	};
 
 	const updateTodo = () => {
@@ -77,6 +74,11 @@
         todoClone.tasks[index].isDone = !todo.tasks[index].isDone;
 		triggerSync = true;
 	};
+
+	const toggleEditPopupForm = () => {
+		//@ts-ignore
+		document.getElementById('dt-todo-input-edit-form').showModal();
+	}
 </script>
 
 <div class="collapse collapse-plus bg-base-200 my-3">
@@ -155,11 +157,16 @@
 				</li>
 			{/each}
 		</ul>
-		<div class="dt-todo-input-container mt-3">
+		<div class="dt-todo-input-container mt-3" class:popup={editMode}>
+			{#if editMode}
+				<button class="btn bg-transparent border-none justify-end hover:bg-transparent" on:click={() => { editMode = false; editId = 0; todoDesc = ''  } }>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+				  </button>
+			{/if}
 			<textarea class="textarea textarea-bordered" bind:value={todoDesc} />
 			<button class="btn btn-primary" on:click={editMode ? updateTodo : addTodo}>
 				{ editMode ? 'Update' : 'Add' }
-			</button>
+			</button>  
 		</div>
 	</div>
 </div>
