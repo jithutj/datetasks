@@ -33,9 +33,18 @@
 				}];
 
 				try {
-					await db.bulkDocs(todo);
+					const result = await db.bulkDocs(todo);
+					// Merge the arrays
+					const mergedArray = _.merge(todo, result);
+
+					// Modify the merged array to omit "ok" and "id" keys and rename "rev" to "_rev"
+					const todoUpdatedWithRev = mergedArray.map(item => {
+						//@ts-ignore
+						const { ok, id, rev, ...rest } = item;
+						return { ...rest, _rev: rev };
+					});
 					console.log('Todo initialized');
-					todos = [...todos, ...todo];
+					todos = [...todos, ...todoUpdatedWithRev];
 				} catch (err) {
 					console.log('Todo initialization failed', err);
 				}
