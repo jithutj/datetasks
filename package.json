@@ -39,6 +39,7 @@
 	"dependencies": {
 		"events": "^3.3.0",
 		"lodash": "^4.17.21",
-		"pouchdb": "^8.0.1"
+		"pouchdb": "^8.0.1",
+		"pouchdb-find": "^8.0.1"
 	}
 }

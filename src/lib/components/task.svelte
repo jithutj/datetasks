@@ -29,6 +29,17 @@
 			todoClone._rev = rev;
 			todo = todoClone;
 			triggerSync = false;
+			if (editMode) {
+				const taskEl = document.querySelector(`[data-task="${todo._id}-${editId}"]`);
+				console.log(taskEl);
+				todoDesc = '';
+				editMode = false;
+				editId = 0;
+				taskEl.classList.add('blinking-border');
+				setTimeout(() => {
+					taskEl.classList.remove('blinking-border');
+				}, 3000)
+			}
 		} catch (err) {
 			console.log(err);
 			alert('failed persist storage syncing')
@@ -54,9 +65,6 @@
 		todoClone = todo;
 		const index = todoClone.tasks.findIndex(task => task.id === editId)
 		todoClone.tasks[index].desc = todoDesc;
-		todoDesc = '';
-		editMode = false;
-		editId = 0;
 		triggerSync = true;
 	}
 
@@ -75,9 +83,11 @@
 		triggerSync = true;
 	};
 
-	const toggleEditPopupForm = () => {
-		//@ts-ignore
-		document.getElementById('dt-todo-input-edit-form').showModal();
+	const toggleTaskMenu = (e) => {
+		console.log(e.target)
+		const target = e.target.getAttribute('data-target');
+		console.log(target);
+		document.getElementById(target).classList.toggle('hidden');
 	}
 </script>
 
@@ -94,17 +104,27 @@
 	<div class="collapse-content">
 		<ul>
 			{#each todo.tasks as task, i (task.id)}
-				<li class="border rounded-lg border-gray-500 p-2 my-5 {task.isDone ? 'done' : 'not-done'}">
-					<div class="form-control">
-						<label class="cursor-pointer label flex items-center">
+				<li data-task={`${todo._id}-${task.id}`} class="border rounded-lg border-gray-500 p-2 my-5 {task.isDone ? 'done' : 'not-done'}">
+					<div class="flex">
+						<label class="cursor-pointer label flex items-center w-11/12">
 							<span class="label-text p-2">{task.desc}</span>
 							<div class="flex items-center">
-							<input
-								type="checkbox"
-								on:click={(e) => toggleCompleted(e)}
-								value={task.id}
-								class="checkbox checkbox-accent"
-							/>
+								<input
+									type="checkbox"
+									on:click={(e) => toggleCompleted(e)}
+									value={task.id}
+									class="checkbox checkbox-accent"
+									bind:checked={task.isDone}
+								/>	
+							</div>
+						</label>
+						<button class="task-menu-action w-1/12" data-target={`task-menu-content-${todo._id}-${task.id}`} on:click={toggleTaskMenu}>
+									<div class="dot"></div>
+									<div class="dot"></div>
+									<div class="dot"></div>
+						</button>
+					</div>
+						<div id={`task-menu-content-${todo._id}-${task.id}`} class="button-group flex justify-end hidden ease-in-out duration-500 transition-all" >
 							<button class="btn" on:click={() => {
 								editMode = true;
 								editId = task.id;
@@ -151,9 +171,6 @@
 									</svg>
 							</button>
 						</div>
-						</label>
-						
-					</div>
 				</li>
 			{/each}
 		</ul>

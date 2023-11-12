@@ -1,4 +1,5 @@
 import PouchDB from 'pouchdb';
+import PouchdbFind from 'pouchdb-find';
 
 class Database {
   private static instance: Database;
@@ -8,7 +9,9 @@ class Database {
 
   private constructor() {
     // Initialize your PouchDB instance
+    PouchDB.plugin(PouchdbFind);
     this.db = new PouchDB(this.DBNAME);
+     
   }
 
   public static getInstance(): Database {
