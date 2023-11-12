@@ -9,6 +9,8 @@
 
 	var yesterday = new Date();
 	yesterday.setDate(yesterday.getDate() - 1);
+	var yesterday2 = new Date();
+	yesterday2.setDate(yesterday.getDate() - 2);
 
 	const db = Database.getInstance().getDB();
 
@@ -16,24 +18,29 @@
 
 	onMount(async () => {
 		try {
-			const doc = await db.allDocs({include_docs: true});
-			const { total_rows } = doc;
+			const { docs } = await db.find({
+				selector: {date: {$lte: formatDateISO(new Date()) }}
+			});
 
-			if (!total_rows) {
-				const todo: TODO[] = [
-				{
-					_id: '1',
-					date: formatDateISO(yesterday),
-					tasks: []
-				},	
-				{
-					_id: '2',
-					date: formatDateISO(new Date()),
-					tasks: []
-				}];
+			if (!docs.length) {
+				const todo: TODO[] = [	
+					{
+						_id: '1',
+						date: formatDateISO(new Date()),
+						tasks: []
+					}
+				];
 
 				try {
 					const result = await db.bulkDocs(todo);
+
+					await db.createIndex({
+						index: {
+						fields: ['date'],
+						name: 'dateindex'
+						}
+					});
+
 					// Merge the arrays
 					const mergedArray = _.merge(todo, result);
 
@@ -49,10 +56,7 @@
 					console.log('Todo initialization failed', err);
 				}
 			} else {
-				const { rows } = doc;
-				const todoData = _.map(rows, 'doc');
-				//@ts-ignore
-				todos = [...todos, ...todoData];
+				todos = [...todos, ...docs];
 			}
 		} catch (err) {
 			console.log(err);
