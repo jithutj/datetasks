@@ -18,6 +18,10 @@ export  function formatDateISO(dateInput: Date) {
     return dateInput.toISOString();
 }
 
+export  function formatDateISODateOnly(dateInput: Date) {
+    return dateInput.toISOString().split('T')[0];
+}
+
 
 
 

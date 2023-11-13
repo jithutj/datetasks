@@ -35,8 +35,10 @@
 				todoDesc = '';
 				editMode = false;
 				editId = 0;
+				//@ts-ignore
 				taskEl.classList.add('blinking-border');
 				setTimeout(() => {
+					//@ts-ignore
 					taskEl.classList.remove('blinking-border');
 				}, 3000)
 			}
@@ -83,11 +85,15 @@
 		triggerSync = true;
 	};
 
-	const toggleTaskMenu = (e) => {
-		console.log(e.target)
+	const toggleTaskMenu = (e: MouseEvent) => {
+		//@ts-ignore
 		const target = e.target.getAttribute('data-target');
-		console.log(target);
-		document.getElementById(target).classList.toggle('hidden');
+		//@ts-ignore
+		const targetEl = document.getElementById(target);
+		//@ts-ignore
+		targetEl.classList.toggle('hidden');
+		//@ts-ignore
+		targetEl.classList.toggle('flex');
 	}
 </script>
 
@@ -99,7 +105,7 @@
 	{/if}
 
 	<div class="collapse-title text-xl font-medium">
-		{formatDateReadable(todo.date)}
+		{formatDateReadable(todo.dateIso)}
 	</div>
 	<div class="collapse-content">
 		<ul>
@@ -124,7 +130,7 @@
 									<div class="dot"></div>
 						</button>
 					</div>
-						<div id={`task-menu-content-${todo._id}-${task.id}`} class="button-group flex justify-end hidden ease-in-out duration-500 transition-all" >
+						<div id={`task-menu-content-${todo._id}-${task.id}`} class="button-group justify-end hidden" >
 							<button class="btn" on:click={() => {
 								editMode = true;
 								editId = task.id;
