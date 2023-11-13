@@ -4,7 +4,14 @@
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '' 
 </script>
 
-<slot />
 <svelte:head> 
  	{@html webManifestLink} 
 </svelte:head>
+
+<main>
+	<slot />
+  </main>
+
+{#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt}}
+  <ReloadPrompt />
+{/await}
