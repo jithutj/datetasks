@@ -109,6 +109,18 @@
 		}
 	});
 
+	const removeTodo = async (todoId: TODO['_id']) => {
+		try {
+		const removedDoc = _.remove(todos, { '_id': todoId });
+		todos = todos;
+		await tick()
+		//@ts-ignore
+		await db.remove(removedDoc[0]);
+		} catch (err) {
+			console.log(err);
+		}
+	}
+
 	$: todoCount = todos.length;
 </script>
 
@@ -129,7 +141,7 @@
 			</button>
 		</div>
 		{#each todos as todo, i (todo._id)}
-			<TaskComponent {todo} isOpen={todo._id === today} containerId="dt-todo-container" />
+			<TaskComponent {todo} isOpen={todo._id === today} containerId="dt-todo-container" removeTodo={removeTodo} />
 		{/each}
 	</div>
 	<p class="text-right pt-10">Made with Love by <b>Jithu TJ</b></p>

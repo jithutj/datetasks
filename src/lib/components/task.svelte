@@ -7,6 +7,7 @@
 	export let todo: TODO;
 	export let isOpen: boolean;
 	export let containerId: string;
+	export let removeTodo: (todoId: TODO['_id']) => void 
 
 	const db = Database.getInstance().getDB();
 
@@ -50,7 +51,7 @@
 
 	$: triggerSync && persistState()
 
-	const addTodo = () => {
+	const addTask = () => {
 		if (!todoDesc) return
 		todoClone = todo;
         const tasks = todoClone.tasks;
@@ -63,7 +64,7 @@
 		scrollToBottom();
 	};
 
-	const updateTodo = () => {
+	const updateTask = () => {
 		todoClone = todo;
 		const index = todoClone.tasks.findIndex(task => task.id === editId)
 		todoClone.tasks[index].desc = todoDesc;
@@ -95,6 +96,8 @@
 		//@ts-ignore
 		targetEl.classList.toggle('flex');
 	}
+
+	
 </script>
 
 <div class="collapse collapse-plus bg-base-200 my-3">
@@ -104,16 +107,38 @@
 		<input type="radio" name="todo-accordion" />
 	{/if}
 
-	<div class="collapse-title text-xl font-medium">
+	<div class="collapse-title text-xl font-medium flex">
+		<div class="w-10/12">
 		{formatDateReadable(todo.dateIso)}
+		</div>
+		<div class="w-2/12 z-50">
+			<button class="btn" on:click={() => { removeTodo(todo._id)}}>
+				<svg
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					xmlns="http://www.w3.org/2000/svg"
+					>
+					<path
+						fill-rule="evenodd"
+						clip-rule="evenodd"
+						d="M17 5V4C17 2.89543 16.1046 2 15 2H9C7.89543 2 7 2.89543 7 4V5H4C3.44772 5 3 5.44772 3 6C3 6.55228 3.44772 7 4 7H5V18C5 19.6569 6.34315 21 8 21H16C17.6569 21 19 19.6569 19 18V7H20C20.5523 7 21 6.55228 21 6C21 5.44772 20.5523 5 20 5H17ZM15 4H9V5H15V4ZM17 7H7V18C7 18.5523 7.44772 19 8 19H16C16.5523 19 17 18.5523 17 18V7Z"
+						fill="currentColor"
+					/>
+					<path d="M9 9H11V17H9V9Z" fill="currentColor" />
+					<path d="M13 9H15V17H13V9Z" fill="currentColor" />
+				</svg>
+			</button>
+		</div>
 	</div>
 	<div class="collapse-content">
 		<ul>
 			{#each todo.tasks as task, i (task.id)}
 				<li data-task={`${todo._id}-${task.id}`} class="border rounded-lg border-gray-500 p-2 my-5 {task.isDone ? 'done' : 'not-done'}">
 					<div class="flex">
-						<label class="cursor-pointer label flex items-center w-11/12">
-							<span class="label-text p-2">{task.desc}</span>
+						<span class="label-text p-2 w-10/12">{task.desc}</span>
+						<label class="cursor-pointer label flex items-center w-1/12">
 							<div class="flex items-center">
 								<input
 									type="checkbox"
@@ -187,7 +212,7 @@
 				  </button>
 			{/if}
 			<textarea class="textarea textarea-bordered" bind:value={todoDesc} />
-			<button class="btn btn-primary" on:click={editMode ? updateTodo : addTodo}>
+			<button class="btn btn-primary" on:click={editMode ? updateTask : addTask}>
 				{ editMode ? 'Update' : 'Add' }
 			</button>  
 		</div>
