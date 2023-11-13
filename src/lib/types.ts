@@ -1,6 +1,6 @@
 export type TODO = {
     _id: string
-    date: string
+    dateIso: string
     tasks: Task[]
     _rev?: string
 }
