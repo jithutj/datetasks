@@ -5,7 +5,7 @@
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
 	import { DateInput } from 'date-picker-svelte'
-	import { Plus } from 'radix-icons-svelte';
+	import { DotsHorizontal, Plus } from 'radix-icons-svelte';
 	import { toast } from '@zerodevx/svelte-toast'
 
 	import '../todo.css';
@@ -14,6 +14,7 @@
 	const db = Database.getInstance().getDB();
 
 	let todos: TODO[] = [];
+	let todoPrevPaginationStartid: string | null = null;
 
 	const todayDate = new Date();
 	const today = formatDateISODateOnly(todayDate);
@@ -115,15 +116,43 @@
 	const removeTodo = async (todoId: TODO['_id']) => {
 		try {
 		const removedDoc = _.remove(todos, { '_id': todoId });
-		todos = todos;
-		await tick()
 		//@ts-ignore
 		await db.remove(removedDoc[0]);
+		await tick()
+		todos = todos;
 		} catch (err) {
 			console.log(err);
 		}
 	}
-	// $: todoCount = todos.length;
+
+	const getPrevDates = async () => {
+		const { docs: prevDocs } = await db.find({
+			selector: { _id: { $lte: todoPrevPaginationStartid } },
+			sort: [{ _id: 'desc' }],
+			limit: 5
+		});
+
+		await tick()
+
+		//@ts-ignore
+		todos = _.orderBy([...todos, ...prevDocs], ['_id']);
+	}
+
+	const getPrevMoreId = async () => {
+			const currentStartId = _.get(todos, '[0]._id')
+
+			const { docs: prevDocsMore } = await db.find({
+				selector: { _id: { $lt: currentStartId } },
+				sort: [{ _id: 'desc' }],
+				limit: 2
+			});
+
+			await tick()
+
+			todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0]._id : null;	
+	}
+
+	$: if (todos.length) { getPrevMoreId() }
 </script>
 
 <section
@@ -152,6 +181,15 @@
 		<div class="divider mb-0 my-0" />
 	</header>
 	<div class="dt-todo-task-container mt-32">
+		{#if todoPrevPaginationStartid}
+		<Button slot="control" ripple variant="default" on:click={getPrevDates} override={{
+			border: 'none',
+			background: 'transparent',
+			'&:hover': {
+				background: 'transparent'
+			}
+		}}><DotsHorizontal /> Load Previous Dates</Button>
+		{/if}
 		{#each todos as todo, i (todo._id)}
 			<TaskComponent {todo} isOpen={todo._id === today} containerId="dt-todo-container" removeTodo={removeTodo} />
 		{/each}
