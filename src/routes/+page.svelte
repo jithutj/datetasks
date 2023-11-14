@@ -6,6 +6,7 @@
 	import _ from 'lodash';
 	import { DateInput } from 'date-picker-svelte'
 	import { Plus } from 'radix-icons-svelte';
+	import { toast } from '@zerodevx/svelte-toast'
 
 	import '../todo.css';
 	import { Button } from '@svelteuidev/core';
@@ -19,6 +20,7 @@
 	let DateInputValue = todayDate;
 
 	const createTodo = async (shouldIndex: boolean = false, dateInput:Date = todayDate) => {
+		
 		const todoDefault: TODO[] = [
 			{
 				_id: formatDateISODateOnly(dateInput),
@@ -27,7 +29,7 @@
 			}
 		];
 
-		const result = await db.put(todoDefault);
+		const result = await db.bulkDocs(todoDefault);
 
 		if (shouldIndex) {
 			await db.createIndex({
@@ -50,11 +52,20 @@
 
 	const addDate = async () => {
 		try {
-			const todoUpdatedWithRev = await createTodo(false, DateInputValue);
-			await tick();
-			todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
-			//@ts-ignore
-			document.getElementById('add_date_modal').close();
+			const isDateExist = todos.some((item) => item._id === formatDateISODateOnly(DateInputValue));
+			if (!isDateExist) {
+				const todoUpdatedWithRev = await createTodo(false, DateInputValue);
+				await tick();
+				todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
+				//@ts-ignore
+				document.getElementById('add_date_modal').close();
+			} else {
+				toast.push('Date already exist', { 
+					classes: ['warn']
+				})
+				//@ts-ignore
+				document.getElementById('add_date_modal').close();
+			}
 		}catch (err) {
 			console.log('Todo Date Creattion failed', err);
 		}
