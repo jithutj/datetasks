@@ -42,10 +42,13 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@svelteuidev/composables": "^0.15.3",
+		"@svelteuidev/core": "^0.15.3",
 		"events": "^3.3.0",
 		"kolorist": "^1.8.0",
 		"lodash": "^4.17.21",
 		"pouchdb": "^8.0.1",
-		"pouchdb-find": "^8.0.1"
+		"pouchdb-find": "^8.0.1",
+		"radix-icons-svelte": "^1.2.1"
 	}
 }

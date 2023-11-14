@@ -6,6 +6,7 @@ const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
 };
 
 const formattedDate = dateObject.toLocaleDateString('en-US', options)
