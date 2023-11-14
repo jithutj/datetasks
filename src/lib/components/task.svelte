@@ -125,7 +125,13 @@
 		{formatDateReadable(todo.dateIso)}
 		</div>
 		<div class="w-2/12 z-40">
-			<Button class="btn btn-circle" ripple on:click={() => { removeTodo(todo._id)}}>
+			<Button stot="control" class="btn btn-circle" ripple on:click={() => { removeTodo(todo._id)}} override={{
+				border: 'none',
+				background: 'transparent',
+				'&:hover': {
+					background: 'transparent'
+				}
+			}}>
 				<svg
 					width="24"
 					height="24"

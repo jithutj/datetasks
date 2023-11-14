@@ -89,3 +89,8 @@ label {
 .dt-todo-task-container .collapse-plus > .collapse-title:after {
 	top: 1.6rem;
 }
+
+.checkbox {
+	width: 18px;
+	height: 18px;
+}
