@@ -68,7 +68,6 @@
 		todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }]
         todoDesc = ''
 		triggerSync = true;
-		scrollToBottom();
 	};
 
 	const updateTask = (taskid: number = 0, desc: string = '') => {
