@@ -1,4 +1,5 @@
 <script>
+	import { SvelteUIProvider } from '@svelteuidev/core';
 	import { pwaInfo } from 'virtual:pwa-info'; 
 	import '../app.postcss';
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '' 
@@ -8,9 +9,9 @@
  	{@html webManifestLink} 
 </svelte:head>
 
-<main>
+<SvelteUIProvider withNormalizeCSS withGlobalStyles>
 	<slot />
-  </main>
+</SvelteUIProvider>
 
 {#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt}}
   <ReloadPrompt />
