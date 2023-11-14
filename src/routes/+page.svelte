@@ -124,10 +124,16 @@
 		<h2 class="text-xl font-bold mt-5 text-center text-white">DateTask App</h2>
 	</div>
 <div class="flex justify-end px-4">
-		<Button class="btn btn-secondary" ripple on:click={()=> { 
+		<Button slot="control" ripple on:click={()=> { 
 			//@ts-ignore
 			document.getElementById('add_date_modal').showModal()
-		} }>
+		} } override={{
+							border: 'none',
+							background: 'transparent',
+							'&:hover': {
+								background: 'transparent'
+							}
+						}}>
 			<Plus /> Add date
 		</Button>
 	</div>
