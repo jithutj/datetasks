@@ -27,7 +27,7 @@
 			}
 		];
 
-		const result = await db.bulkDocs(todoDefault);
+		const result = await db.put(todoDefault);
 
 		if (shouldIndex) {
 			await db.createIndex({
@@ -51,6 +51,7 @@
 	const addDate = async () => {
 		try {
 			const todoUpdatedWithRev = await createTodo(false, DateInputValue);
+			await tick();
 			todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
 			//@ts-ignore
 			document.getElementById('add_date_modal').close();
