@@ -1,5 +1,5 @@
 .DS_Store
-datetasks
+/datetasks
 node_modules
 /build
 /.svelte-kit
