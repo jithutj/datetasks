@@ -2,14 +2,7 @@ export function formatDateReadable(dateString: string) {
 
 const dateObject = new Date(dateString);    
 
-const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-};
-
-const formattedDate = dateObject.toLocaleDateString('en-US', options)
+const formattedDate = dateObject.toDateString()
 
 return formattedDate;
 
@@ -22,7 +15,6 @@ export  function formatDateISO(dateInput: Date) {
 export  function formatDateISODateOnly(dateInput: Date) {
     return dateInput.toISOString().split('T')[0];
 }
-
 
 
 
