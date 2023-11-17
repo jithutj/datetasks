@@ -110,11 +110,11 @@ label {
 }
 
 .svelteui-Menu-body, .svelteui-Menu-body:hover {
-	background: none;
-	padding: 0;
-	border: none;
+	background: none !important;
+	padding: 0 !important;
+	border: none !important;
 }
 
 .svelteui-MenuItem-root.itemHovered {
-	background-color: transparent;
+	background-color: transparent !important;
 }

@@ -205,9 +205,7 @@
 		aria-describedby="dd-date-popup-content"
 		surface$style="min-height: 50vh; max-height: 60vh;width: 300px;max-width: calc(100vw - 32px);"
 		>	
-		<Header>
 			<Title id="add-date-popup-title" class="text-center">Add date</Title>
-		</Header>
 		<DialogContent id="add-date-popup-content" class="text-center">
 			<DateInput format="yyyy-MM-dd" closeOnSelection={true} bind:value={DateInputValue} />
 		</DialogContent>
