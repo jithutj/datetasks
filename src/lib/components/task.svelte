@@ -135,16 +135,14 @@
 			
 				<Paper class={`mb-4 ${task.isDone && 'task-done'}`}>
 					<Subtitle class="flex items-center">
-						<div class="w-1/12">
-							<div class="w-1/12">
+						<div class="w-2/12">
 								<Checkbox
 									on:click={(e) => toggleCompleted(e)}
 									value={task.id}
 									bind:checked={task.isDone}
 								/>
-							</div>
 						</div>
-						<div class="w-10/12">
+						<div class="w-9/12">
 							{task.desc}
 						</div>
 						<div class="w-1/12">
@@ -198,7 +196,7 @@
 			<Title id={`todo-${todo._id}-popup-title`}>
 				{formatDateReadable(todo._id)}
 			</Title>
-			<DialogContent id={`todo-${todo._id}-popup-content`} class="mt-10">
+			<DialogContent id={`todo-${todo._id}-popup-content`} class="pt-10">
 				<Textfield
 					style="width: 100%;"
 					helperLine$style="width: 100%;"
