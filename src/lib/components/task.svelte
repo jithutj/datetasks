@@ -10,7 +10,7 @@
 	import Accordion, { Panel, Header, Content } from '@smui-extra/accordion';
 
 	import Paper, { Subtitle } from '@smui/paper';
-	import IconButton from '@smui/icon-button';
+	import IconButton, { Icon } from '@smui/icon-button';
 	import { default as MaterialMenu } from '@smui/menu';
   	import List, { Item, Separator, Text } from '@smui/list';
 	import Textfield from '@smui/textfield';
@@ -114,7 +114,7 @@
 		targetEl.classList.toggle('flex');
 	}
 
-	$: openPopup = editMode;
+	let openPopup = false;
 </script>
 	  <Panel bind:open={ isOpen }>
 		<Header>
@@ -159,9 +159,12 @@
 								<MaterialMenu static>
 									<List>
 										<Item on:SMUI:action={() => {
-											editMode = true;
-											editId = task.id;
-											todoDesc = task.desc;
+											if (!editMode || editId !== task.id) {
+												editMode = true;
+												editId = task.id;
+												todoDesc = task.desc;
+											}
+											openPopup = true;
 										}}>
 										<Text>Edit</Text>
 										</Item>
@@ -182,7 +185,12 @@
 			{/each}
 		</div>
 		<div class="flex justify-end">
-			<MateriaButton color="primary" variant="unelevated" on:click={() => { openPopup = true } }>
+			<MateriaButton color="primary" variant="unelevated" on:click={() => { 
+				editId = 0;
+				editMode = false;
+				todoDesc = '';
+				openPopup = true 
+			} }>
 				Add
 			</MateriaButton> 
 		</div>
@@ -191,15 +199,27 @@
 			bind:open={openPopup}
 			aria-labelledby={`todo-${todo._id}-popup-title`}
 			aria-describedby={`todo-${todo._id}-popup-content`}
-			surface$style="width: 80%; max-width: calc(100vw - 32px);"
-			>
+			surface$style="width: 100%; height: 100%; min-width: 100vw">
+			<div class="flex justify-end">
+			<Actions>
+				<IconButton class="material-icons" on:click={() => openPopup = false }
+					>close</IconButton>
+			</Actions>
+			</div>
+			<div class="flex items-center justify-between">
 			<Title id={`todo-${todo._id}-popup-title`}>
 				{formatDateReadable(todo._id)}
 			</Title>
-			<div class="pb-1">
+			<Actions>
+				<MateriaButton variant="raised" action="accept" on:click={() => editMode ? updateTask() : addTask ()}>
+					<Label>Save</Label>
+				</MateriaButton>
+			</Actions>
+			</div>
+			<div>
 			<DialogContent id={`todo-${todo._id}-popup-content`}>
 				<Textfield
-					style="width: 100%;"
+					style="width: 100%;height: 70vh"
 					helperLine$style="width: 100%;"
 					textarea
 					bind:value={todoDesc}
@@ -207,12 +227,7 @@
 				>
 				</Textfield>
 			</DialogContent>
-		</div>
-			<Actions>
-				<MateriaButton action="accept" on:click={() => editMode ? updateTask() : addTask ()}>
-					<Label>{ editMode ? 'Update' : 'Add' }</Label>
-				</MateriaButton>
-			</Actions>
+			</div>
 			</Dialog>
 		</Content>
 	  </Panel>

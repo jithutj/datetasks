@@ -16,51 +16,67 @@
 	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
 	import { Label, default as MateriaButton } from '@smui/button';
 	import Header from '@smui-extra/accordion/src/Header.svelte';
+	import { error } from '@sveltejs/kit';
 
 	const db = Database.getInstance().getDB();
 
 	let todos: TODO[] = [];
 	let todoPrevPaginationStartid: string | null = null;
+	let todoNextPaginationStartid: string | null = null;
 
 	const todayDate = new Date();
 	const today = formatDateISODateOnly(todayDate);
 	let DateInputValue = todayDate;
 
 	const createTodo = async (shouldIndex: boolean = false, dateInput:Date = todayDate) => {
-		
-		const todoDefault: TODO[] = [
-			{
+		const todoDefault: TODO = {
 				_id: formatDateISODateOnly(dateInput),
 				dateIso: formatDateISO(dateInput),
 				tasks: []
 			}
-		];
+		;
 
-		const result = await db.bulkDocs(todoDefault);
+		try {
+			
+			const result  = await db.put(todoDefault);
 
-		if (shouldIndex) {
-			await db.createIndex({
-				index: {
-					fields: ['_id'],
-					name: 'idindex'
-				}
-			});
-		}
+			await tick();
 
-		const mergedArray = _.merge(todoDefault, result);
+			if (shouldIndex) {
+				await db.createIndex({
+					index: {
+						fields: ['_id'],
+						name: 'idindex'
+					}
+				});
+			}
 
-		// Modify the merged array to omit "ok" and "id" keys and rename "rev" to "_rev"
-		return mergedArray.map((item) => {
+			const mergedArray = _.merge(todoDefault, result);
+
+			// Modify the merged array to omit "ok" and "id" keys and rename "rev" to "_rev"
+			const { ok, id, rev, ...rest } = mergedArray;
+			return [{ ...rest, _rev: rev }];
+		} catch (err) {
 			//@ts-ignore
-			const { ok, id, rev, ...rest } = item;
-			return { ...rest, _rev: rev };
-		});
+			throw error(err.status, err.message);
+		}
 	};
 
 	const addDate = async () => {
 		try {
 			const isDateExist = todos.some((item) => item._id === formatDateISODateOnly(DateInputValue));
 			if (!isDateExist) {
+				const { docs: isDateExistInDb } = await db.find({
+						selector: {'_id': { $eq: formatDateISODateOnly(DateInputValue) }},
+						limit: 1
+				});
+				await tick();
+				if (isDateExistInDb.length) {
+					toast.push('Date already exist', { 
+						classes: ['warn']
+					});
+					throw error(403, 'Date already exists');
+				}
 				const todoUpdatedWithRev = await createTodo(false, DateInputValue);
 				await tick();
 				todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
@@ -79,7 +95,7 @@
 	onMount(async () => {
 		try {
 			const { docs } = await db.find({
-				selector: {},
+				selector: { _id: { $lte: today } },
 				sort: [{ _id: 'desc' }],
 				limit: 5
 			});
@@ -129,21 +145,36 @@
 		}
 	}
 
-	const getPrevDates = async () => {
-		const { docs: prevDocs } = await db.find({
-			selector: { _id: { $lte: todoPrevPaginationStartid } },
-			sort: [{ _id: 'desc' }],
-			limit: 5
-		});
-
-		await tick()
-
-		//@ts-ignore
-		todos = _.orderBy([...todos, ...prevDocs], ['_id']);
+	const getMoreDates = async (type: 'prev' | 'next' = 'prev') => {
+		switch(type) {
+			case 'next':
+				const { docs: nextDocs } = await db.find({
+					selector: { _id: { $gte: todoNextPaginationStartid } },
+					sort: [{ _id: 'asc' }],
+					limit: 5
+				});
+				await tick()
+				//@ts-ignore
+				todos = _.orderBy([...nextDocs, ...todos], ['_id']);
+				break;
+			default:
+				const { docs: prevDocs } = await db.find({
+					selector: { _id: { $lte: todoPrevPaginationStartid } },
+					sort: [{ _id: 'desc' }],
+					limit: 5
+				});
+				await tick()
+				//@ts-ignore
+				todos = _.orderBy([...todos, ...prevDocs], ['_id']);
+		}
 	}
 
-	const getPrevMoreId = async () => {
+	const setMoreStartEndIds = async () => {
 			const currentStartId = _.get(todos, '[0]._id')
+			const currentEndId = _.maxBy(todos, '_id')?._id;
+
+			console.log(currentStartId);
+			console.log(currentEndId)
 
 			const { docs: prevDocsMore } = await db.find({
 				selector: { _id: { $lt: currentStartId } },
@@ -151,12 +182,21 @@
 				limit: 2
 			});
 
+			const { docs: nextDocsMore } = await db.find({
+				selector: { _id: { $gt: currentEndId } },
+				sort: [{ _id: 'asc' }],
+				limit: 2
+			});
+
 			await tick()
 
 			todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0]._id : null;	
+			todoNextPaginationStartid = nextDocsMore.length ? nextDocsMore[0]._id : null;	
 	}
 
-	$: if (todos.length) { getPrevMoreId() }
+	$: if (todos.length) { 
+		setMoreStartEndIds() 
+	}
 	let openPopup = false; 
 </script>
 
@@ -167,7 +207,7 @@
 >
 	<div class="dt-todo-task-container">
 		{#if todoPrevPaginationStartid}
-		<Button slot="control" ripple variant="default" on:click={getPrevDates} override={{
+		<Button slot="control" ripple variant="default" on:click={() => getMoreDates('prev')} override={{
 			border: 'none',
 			background: 'transparent',
 			'&:hover': {
@@ -180,8 +220,17 @@
 		{#each todos as todo, i (todo._id)}
 			<TaskComponent {todo} isOpen={todo._id === today} containerId="dt-todo-container" removeTodo={removeTodo} />
 		{/each}
-	</Accordion>
-	</div>
+		</Accordion>
+		</div>
+		{#if todoNextPaginationStartid}
+		<Button slot="control" ripple variant="default" on:click={() => getMoreDates('next')} override={{
+			border: 'none',
+			background: 'transparent',
+			'&:hover': {
+				background: 'transparent'
+			}
+		}}><DotsHorizontal /> Load Next Dates</Button>
+		{/if}
 	</div>
 
 	  <div class="flexy fixed z-50 bottom-7 left-1/2 transform -translate-x-1/2">
@@ -218,5 +267,4 @@
 			</MateriaButton>
 		</Actions>
 		</Dialog>
-	<p class="text-right pt-10">Made with Love by <b>Jithu TJ</b></p>
 </section>
