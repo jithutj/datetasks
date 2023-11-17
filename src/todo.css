@@ -18,6 +18,11 @@ textarea {
 	text-decoration: line-through;
 	opacity: 0.3;
 }
+
+.dt-todo-task-container .task-done {
+	text-decoration: line-through;
+}
+
 label {
 	word-break: break-word;
 }
@@ -97,4 +102,19 @@ label {
 
 ._toastContainer .warn ._toastItem {
 	background: red;
+}
+
+.mdc-notched-outline__notch {
+	border-left: 0;
+	border-right: 0;
+}
+
+.svelteui-Menu-body, .svelteui-Menu-body:hover {
+	background: none;
+	padding: 0;
+	border: none;
+}
+
+.svelteui-MenuItem-root.itemHovered {
+	background-color: transparent;
 }

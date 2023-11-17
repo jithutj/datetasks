@@ -1,0 +1,25 @@
+<textarea bind:this={textElem[task.id]} disabled={!editIds.includes(task.id)} class="label-text border-none disable:bg-transparent p-2 w-8/12 h-auto disabled:resize-none">{task.desc}</textarea>
+						<Button slot="control" ripple variant="default" override={{
+							border: 'none',
+							background: 'transparent',
+							'&:hover': {
+								background: 'transparent'
+							}
+						}} on:click={() => {
+							// enable edit
+							if (!editIds.includes(task.id)) {
+								editIds = [...editIds, task.id];
+							} else { //submit edit
+								const desc = textElem[task.id].value;
+								inlineLastEditId = task.id;
+								updateTask(task.id, desc);
+							}
+						}}>
+							{#if editIds.includes(task.id)}
+						    <ActionIcon size="18" radius="xl" variant="outline">
+								<Check size={18}  />
+							</ActionIcon>
+							{:else}
+								<Pencil1 size={16} />
+							{/if}
+						</Button>

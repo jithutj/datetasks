@@ -6,6 +6,18 @@
 	import { ActionIcon, Button, Menu } from '@svelteuidev/core';
 	//@ts-ignore
 	import { Trash, Pencil1, DotsVertical, Check } from 'radix-icons-svelte';
+	//@ts-ignore
+	import Accordion, { Panel, Header, Content } from '@smui-extra/accordion';
+
+	import Paper, { Subtitle } from '@smui/paper';
+	import IconButton from '@smui/icon-button';
+	import { default as MaterialMenu } from '@smui/menu';
+  	import List, { Item, Separator, Text } from '@smui/list';
+	import Textfield from '@smui/textfield';
+	import HelperText from '@smui/textfield/helper-text';
+	import { Label, default as MateriaButton } from '@smui/button';
+	import Checkbox from '@smui/checkbox';
+	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
 
 	export let todo: TODO;
 	export let isOpen: boolean;
@@ -36,16 +48,9 @@
 			todo = todoClone;
 			triggerSync = false;
 			if (editMode) {
-				const taskEl = document.querySelector(`[data-task="${todo._id}-${editId}"]`);
 				todoDesc = '';
 				editMode = false;
 				editId = 0;
-				//@ts-ignore
-				taskEl.classList.add('blinking-border');
-				setTimeout(() => {
-					//@ts-ignore
-					taskEl.classList.remove('blinking-border');
-				}, 3000)
 			}
 			if (inlineLastEditId) {
 				editIds = _.without(editIds, inlineLastEditId);
@@ -90,7 +95,7 @@
 		triggerSync = true;
 	}
 
-	const toggleCompleted = (e: MouseEvent): void => {
+	const toggleCompleted = (e: CustomEvent): void => {
 		//@ts-ignore
 		const taskid = parseInt(e.target.value);
         const index = todo.tasks.findIndex(task => task.id === taskid)
@@ -109,127 +114,105 @@
 		targetEl.classList.toggle('flex');
 	}
 
-	
+	$: openPopup = editMode;
 </script>
-
-<div class="collapse collapse-plus bg-base-200 my-3">
-	{#if isOpen}
-		<input type="radio" name="todo-accordion" checked />
-	{:else}
-		<input type="radio" name="todo-accordion" />
-	{/if}
-
-	<div class="collapse-title text-xl font-medium flex items-center">
-		<div class="w-10/12">
-		{formatDateReadable(todo.dateIso)}
-		</div>
-		<div class="w-2/12 z-40">
-			<Button stot="control" class="btn btn-circle" ripple on:click={() => { removeTodo(todo._id)}} override={{
-				border: 'none',
-				background: 'transparent',
-				color: 'black',
-				'&:hover': {
-					background: 'transparent'
-				}
-			}}>
-				<svg
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					xmlns="http://www.w3.org/2000/svg"
-					>
-					<path
-						fill-rule="evenodd"
-						clip-rule="evenodd"
-						d="M17 5V4C17 2.89543 16.1046 2 15 2H9C7.89543 2 7 2.89543 7 4V5H4C3.44772 5 3 5.44772 3 6C3 6.55228 3.44772 7 4 7H5V18C5 19.6569 6.34315 21 8 21H16C17.6569 21 19 19.6569 19 18V7H20C20.5523 7 21 6.55228 21 6C21 5.44772 20.5523 5 20 5H17ZM15 4H9V5H15V4ZM17 7H7V18C7 18.5523 7.44772 19 8 19H16C16.5523 19 17 18.5523 17 18V7Z"
-						fill="currentColor"
-					/>
-					<path d="M9 9H11V17H9V9Z" fill="currentColor" />
-					<path d="M13 9H15V17H13V9Z" fill="currentColor" />
-				</svg>
-			</Button>
-		</div>
-	</div>
-	<div class="collapse-content">
-		<ul>
+	  <Panel bind:open={ isOpen }>
+		<Header>
+			<div class="flex items-center">
+				<div class="w-11/12">
+					{formatDateReadable(todo.dateIso)}
+				</div>
+				<div class="w-1/12">
+				<IconButton class="material-icons" on:click={() => { removeTodo(todo._id)}}>
+						delete
+					</IconButton>
+				</div> 
+			</div>
+		</Header>
+		<Content>
+			<div class="paper-container dt-todo-task-container">
 			{#each todo.tasks as task, i (task.id)}
-				<li data-task={`${todo._id}-${task.id}`} class="border rounded-lg border-gray-500 p-2 my-5 {task.isDone ? 'done' : 'not-done'}">
-					<div class="flex items-start">
-						<label class="cursor-pointer label flex items-center w-1/12">
-							<div class="flex items-center">
-								<input
-									type="checkbox"
+			
+				<Paper class={`mb-4 ${task.isDone && 'task-done'}`}>
+					<Subtitle class="flex items-center">
+						<div class="w-1/12">
+							<div class="w-1/12">
+								<Checkbox
 									on:click={(e) => toggleCompleted(e)}
 									value={task.id}
-									class="checkbox checkbox-accent"
 									bind:checked={task.isDone}
-								/>	
+								/>
 							</div>
-						</label>
-						<textarea bind:this={textElem[task.id]} disabled={!editIds.includes(task.id)} class="label-text border-none disable:bg-transparent p-2 w-8/12 h-auto disabled:resize-none">{task.desc}</textarea>
-						<Button slot="control" ripple variant="default" override={{
-							border: 'none',
-							background: 'transparent',
-							'&:hover': {
-								background: 'transparent'
-							}
-						}} on:click={() => {
-							// enable edit
-							if (!editIds.includes(task.id)) {
-								editIds = [...editIds, task.id];
-							} else { //submit edit
-								const desc = textElem[task.id].value;
-								inlineLastEditId = task.id;
-								updateTask(task.id, desc);
-							}
-						}}>
-							{#if editIds.includes(task.id)}
-						    <ActionIcon size="18" radius="xl" variant="outline">
-								<Check size={18}  />
-							</ActionIcon>
-							{:else}
-								<Pencil1 size={16} />
-							{/if}
-						</Button>
+						</div>
+						<div class="w-10/12">
+							{task.desc}
+						</div>
+						<div class="w-1/12">
 						<Menu
 							placement="end"
 							gutter={5}
 							size="xs"
+							class="bg-transparent p-0 border-none"
 						>
-							<Button slot="control" ripple variant="default" override={{
-								border: 'none',
-								background: 'transparent',
-								'&:hover': {
-									background: 'transparent'
-								}
-							}}>
-								<DotsVertical />
-							</Button>
-							<Menu.Item icon={Pencil1} on:click={() => {
-								editMode = true;
-								editId = task.id;
-								todoDesc = task.desc;
-							}}>Edit</Menu.Item>
-							<Menu.Item color="red" icon={Trash} on:click={() => {
-								editId = task.id
-								removeTask();
-							}}>Delete</Menu.Item>
+							<IconButton slot="control" class="material-icons"
+								>more_vert</IconButton
+							  >
+							<Menu.Item class="p-0">
+								<MaterialMenu static>
+									<List>
+										<Item on:SMUI:action={() => {
+											editMode = true;
+											editId = task.id;
+											todoDesc = task.desc;
+										}}>
+										<Text>Edit</Text>
+										</Item>
+										<Item on:SMUI:action={() => {
+											editId = task.id
+											removeTask();
+										}}>
+										<Text>Delete</Text>
+										</Item>
+									</List>
+								</MaterialMenu>
+							</Menu.Item>
 						</Menu>
-					</div>
-				</li>
+						</div>
+					</Subtitle>
+				</Paper>
+				
 			{/each}
-		</ul>
-		<div class="dt-todo-input-container mt-3" class:popup={editMode}>
-			{#if editMode}
-				<button class="btn bg-transparent border-none justify-end hover:bg-transparent" on:click={() => { editMode = false; editId = 0; todoDesc = ''  } }>
-					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-				  </button>
-			{/if}
-			<textarea class="textarea textarea-bordered" bind:value={todoDesc} />
-			<button class="btn btn-primary" on:click={() => editMode ? updateTask() : addTask ()}>
-				{ editMode ? 'Update' : 'Add' }
-			</button>  
 		</div>
-	</div>
-</div>
+		<div class="flex justify-end">
+			<MateriaButton color="primary" variant="unelevated" on:click={() => { openPopup = true } }>
+				Add
+			</MateriaButton> 
+		</div>
+		 
+		<Dialog
+			bind:open={openPopup}
+			aria-labelledby={`todo-${todo._id}-popup-title`}
+			aria-describedby={`todo-${todo._id}-popup-content`}
+			surface$style="width: 80%; max-width: calc(100vw - 32px);"
+			>
+			<Title id={`todo-${todo._id}-popup-title`}>
+				{formatDateReadable(todo._id)}
+			</Title>
+			<DialogContent id={`todo-${todo._id}-popup-content`} class="mt-10">
+				<Textfield
+					style="width: 100%;"
+					helperLine$style="width: 100%;"
+					textarea
+					bind:value={todoDesc}
+					label="Description"
+				>
+				</Textfield>
+			</DialogContent>
+			<Actions>
+				<MateriaButton action="accept" on:click={() => editMode ? updateTask() : addTask ()}>
+					<Label>{ editMode ? 'Update' : 'Add' }</Label>
+				</MateriaButton>
+			</Actions>
+			</Dialog>
+		</Content>
+	  </Panel>
