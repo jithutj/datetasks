@@ -207,7 +207,7 @@
 		>	
 			<Title id="add-date-popup-title" class="text-center">Add date</Title>
 		<DialogContent id="add-date-popup-content" class="text-center">
-			<DateInput format="yyyy-MM-dd" closeOnSelection={true} bind:value={DateInputValue} />
+			<DateInput format="yyyy-MM-dd" visible closeOnSelection={true} bind:value={DateInputValue} />
 		</DialogContent>
 		<Actions>
 			<MateriaButton on:click={() => openPopup = false }>
