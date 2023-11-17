@@ -133,7 +133,7 @@
 			<div class="paper-container dt-todo-task-container">
 			{#each todo.tasks as task, i (task.id)}
 			
-				<Paper class={`mb-4 ${task.isDone && 'task-done'}`}>
+				<Paper class={`mb-4 ml-0 mr-0 ${task.isDone && 'task-done'}`}>
 					<Subtitle class="flex items-center">
 						<div class="w-2/12">
 								<Checkbox
@@ -196,7 +196,8 @@
 			<Title id={`todo-${todo._id}-popup-title`}>
 				{formatDateReadable(todo._id)}
 			</Title>
-			<DialogContent id={`todo-${todo._id}-popup-content`} class="pt-10">
+			<div class="pb-1">
+			<DialogContent id={`todo-${todo._id}-popup-content`}>
 				<Textfield
 					style="width: 100%;"
 					helperLine$style="width: 100%;"
@@ -206,6 +207,7 @@
 				>
 				</Textfield>
 			</DialogContent>
+		</div>
 			<Actions>
 				<MateriaButton action="accept" on:click={() => editMode ? updateTask() : addTask ()}>
 					<Label>{ editMode ? 'Update' : 'Add' }</Label>
