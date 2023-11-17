@@ -4,6 +4,7 @@ node_modules
 /.svelte-kit
 /package
 /datetasks
+/android
 .env
 .env.*
 !.env.example
