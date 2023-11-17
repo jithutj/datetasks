@@ -12,10 +12,26 @@
 		  AutoAdjust,
 		} from '@smui/top-app-bar';
 		import IconButton from '@smui/icon-button';
+		import Drawer, {
+			Content,
+			Header,
+			Title as DrawerTitle,
+			Subtitle
+		} from '@smui/drawer';
+		import List, { Item, Text } from '@smui/list';
+		import { Icon } from '@smui/fab';
 	
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
 
 	let topAppBar: TopAppBar;
+
+	let open = false;
+	let menuActive = 'Inbox';
+
+	function setActive(value: string) {
+	menuActive = value;
+    open = false;
+  }
 </script>
 
 <svelte:head>
@@ -41,7 +57,36 @@
 	<TopAppBar bind:this={topAppBar} variant="fixed">
 		<Row>
 		  <Section>
-			<!-- <IconButton class="material-icons">menu</IconButton> -->
+			<IconButton class="material-icons" on:click={ () => (open = !open) }>menu</IconButton>
+			<div on:keydown={() => {}} role="button" tabindex="0" on:click={() => (open = !open)} class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 z-50" class:hidden={!open}></div>
+			<div class="drawer-container">
+			<Drawer variant="modal" bind:open class="top-0">
+				<Header>
+				  <DrawerTitle>NotesProd</DrawerTitle>
+				  <Subtitle>Organise your tasks</Subtitle>
+				</Header>
+				<Content>
+				  <List>
+					<Item
+					  href="/"
+					  on:click={() => setActive('Home')}
+					  activated={menuActive === 'Home'}
+					>
+					<Icon class="material-icons pr-2">home</Icon>
+					<Text>Home</Text>
+					</Item>
+				  </List>
+				</Content>
+				<Item
+					  href="/about"
+					  on:click={() => setActive('About')}
+					  activated={menuActive === 'About'}
+					  class="absolute bottom-7"
+					>
+					  <Text>About</Text>
+					</Item>
+			  </Drawer>
+			</div>
 			<Title>NotesPro</Title>
 		  </Section>
 		  <!-- <Section align="end" toolbar>
@@ -78,6 +123,15 @@
 	  width: auto !important;
 	  position: static !important;
 	}
+	.drawer-container {
+    position: relative;
+    display: flex;
+    max-width: 600px;
+    border: 1px solid
+      var(--mdc-theme-text-hint-on-background, rgba(0, 0, 0, 0.1));
+    overflow: hidden;
+    z-index: 9999;
+  }
   </style>
 
 
