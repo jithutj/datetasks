@@ -65,8 +65,6 @@
 
 	const addDate = async ($dateTarget: any) => {
 		try {
-			console.log(DateInputValue);
-			// console.log(formatDateISODateOnly(DateInputValue))
 			const isDateExist = todos.some((item) => item._id === formatDateISODateOnly(DateInputValue));
 			if (!isDateExist) {
 				const { docs: isDateExistInDb } = await db.find({
@@ -143,7 +141,6 @@
 						return 'Add';
 					},
 					onClick(dp) {
-						console.log(dp)
 						//@ts-ignore
 						const dpDate = dp.lastSelectedDate ?? todayDate;
 						//@ts-ignore
@@ -199,9 +196,6 @@
 	const setMoreStartEndIds = async () => {
 		const currentStartId = _.get(todos, '[0]._id');
 		const currentEndId = _.maxBy(todos, '_id')?._id;
-
-		console.log(currentStartId);
-		console.log(currentEndId);
 
 		const { docs: prevDocsMore } = await db.find({
 			selector: { _id: { $lt: currentStartId } },
@@ -276,16 +270,15 @@
 				}}><DotsHorizontal /> Load Next Dates</Button
 			>
 		{/if}
-	</div>
-
-	<div class="flexy fixed z-50 bottom-7 left-1/2 transform -translate-x-1/2">
-		<div class="margins">
-			<Fab>
-				<Icon tag="svg" viewBox="2 2 20 20">
-					<path fill="currentColor" d={mdiPlus} />
-				</Icon>
-				<input type="button" id="add-todo-trigger" class="absolute w-full h-full" />
-			</Fab>
+		<div class="flexy z-auto fixed bottom-7 left-1/2 transform -translate-x-1/2">
+			<div class="margins">
+				<Fab>
+					<Icon tag="svg" viewBox="2 2 20 20">
+						<path fill="currentColor" d={mdiPlus} />
+					</Icon>
+					<input type="button" id="add-todo-trigger" class="absolute w-full h-full" />
+				</Fab>
+			</div>
 		</div>
 	</div>
 	<!-- <Dialog

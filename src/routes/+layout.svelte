@@ -1,9 +1,10 @@
 <script lang="ts">
 // @ts-nocheck
-
+	import { onMount } from 'svelte';
 	import { SvelteUIProvider } from '@svelteuidev/core';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
-	import { pwaInfo } from 'virtual:pwa-info';
+	import { Loader } from '@svelteuidev/core';
+	// import { pwaInfo } from 'virtual:pwa-info';
 	import '../app.postcss';
 	import TopAppBar, {
 		  Row,
@@ -21,7 +22,7 @@
 		import List, { Item, Text } from '@smui/list';
 		import { Icon } from '@smui/fab';
 	
-	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
+	// $: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
 
 	let topAppBar: TopAppBar;
 
@@ -32,10 +33,22 @@
 	menuActive = value;
     open = false;
   }
+
+  /* {@html webManifestLink} */ //should be under svelte head
+  let isLoading = true;
+
+   // Simulate an asynchronous operation (e.g., fetching data)
+   onMount(async () => {
+    // Simulate a delay (you can replace this with your actual async operation)
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
+		// After the delay, set isLoading to false to hide the loading indicator
+		isLoading = false;
+	});
 </script>
 
 <svelte:head>
-	{@html webManifestLink}
+	
 	<link rel="stylesheet" href="/smui.css" media="(prefers-color-scheme: light)" />
 	<link
 	rel="stylesheet"
@@ -60,7 +73,7 @@
 			<IconButton class="material-icons" on:click={ () => (open = !open) }>menu</IconButton>
 			<div on:keydown={() => {}} role="button" tabindex="0" on:click={() => (open = !open)} class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 z-50" class:hidden={!open}></div>
 			<div class="drawer-container">
-			<Drawer variant="modal" bind:open class="top-0">
+			<Drawer variant="modal" bind:open class="top-0 z-50">
 				<Header>
 				  <DrawerTitle>NotesPro</DrawerTitle>
 				  <Subtitle>Organise your tasks</Subtitle>
@@ -103,15 +116,20 @@
 		</Row>
 	  </TopAppBar>
 	  <AutoAdjust {topAppBar}>
+		{#if isLoading}
+		<div class="loading-indicator fixed w-full h-full bg-white z-50 flex items-center justify-center">
+			<Loader />
+		</div>
+		{/if}
 		<slot />
 	  </AutoAdjust>
 </SvelteUIProvider>
 
 <SvelteToast />
 
-{#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
+<!-- {#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
 	<ReloadPrompt />
-{/await}
+{/await} -->
 
 <style>
 	/* Hide everything above this component. */
