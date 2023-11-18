@@ -62,7 +62,7 @@
 			<div class="drawer-container">
 			<Drawer variant="modal" bind:open class="top-0">
 				<Header>
-				  <DrawerTitle>NotesProd</DrawerTitle>
+				  <DrawerTitle>NotesPro</DrawerTitle>
 				  <Subtitle>Organise your tasks</Subtitle>
 				</Header>
 				<Content>

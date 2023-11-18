@@ -1,22 +1,26 @@
 <script lang="ts">
 	import { TaskComponent, Database } from '$lib';
 	import type { TODO } from '$lib/types';
-	import { formatDateISO, formatDateISODateOnly } from '$lib/utils/date';
+	import { formatDateISO, formatDateISODateOnly, formatDateRegular } from '$lib/utils/date';
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
-	import { DateInput } from 'date-picker-svelte'
+	/* import { DateInput } from 'date-picker-svelte'; */
 	import { DotsHorizontal, Plus } from 'radix-icons-svelte';
-	import { toast } from '@zerodevx/svelte-toast'
+	import { toast } from '@zerodevx/svelte-toast';
 
 	import '../todo.css';
 	import { Button } from '@svelteuidev/core';
 	import Accordion from '@smui-extra/accordion';
 	import { mdiPlus } from '@mdi/js';
 	import Fab, { Icon } from '@smui/fab';
-	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
+/* 	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
 	import { Label, default as MateriaButton } from '@smui/button';
-	import Header from '@smui-extra/accordion/src/Header.svelte';
+	import Header from '@smui-extra/accordion/src/Header.svelte'; */
 	import { error } from '@sveltejs/kit';
+	import AirDatepicker from 'air-datepicker';
+	import AirDatelocaleEn from 'air-datepicker/locale/en';
+	import 'air-datepicker/air-datepicker.css';
+	import type { HTMLDataAttributes } from 'svelte/elements';
 
 	const db = Database.getInstance().getDB();
 
@@ -28,17 +32,14 @@
 	const today = formatDateISODateOnly(todayDate);
 	let DateInputValue = todayDate;
 
-	const createTodo = async (shouldIndex: boolean = false, dateInput:Date = todayDate) => {
+	const createTodo = async (shouldIndex: boolean = false, dateInput: Date = todayDate) => {
 		const todoDefault: TODO = {
-				_id: formatDateISODateOnly(dateInput),
-				dateIso: formatDateISO(dateInput),
-				tasks: []
-			}
-		;
-
+			_id: formatDateISODateOnly(dateInput),
+			dateIso: formatDateISO(dateInput),
+			tasks: []
+		};
 		try {
-			
-			const result  = await db.put(todoDefault);
+			const result = await db.put(todoDefault);
 
 			await tick();
 
@@ -62,17 +63,19 @@
 		}
 	};
 
-	const addDate = async () => {
+	const addDate = async ($dateTarget: any) => {
 		try {
+			console.log(DateInputValue);
+			// console.log(formatDateISODateOnly(DateInputValue))
 			const isDateExist = todos.some((item) => item._id === formatDateISODateOnly(DateInputValue));
 			if (!isDateExist) {
 				const { docs: isDateExistInDb } = await db.find({
-						selector: {'_id': { $eq: formatDateISODateOnly(DateInputValue) }},
-						limit: 1
+					selector: { _id: { $eq: formatDateISODateOnly(DateInputValue) } },
+					limit: 1
 				});
 				await tick();
 				if (isDateExistInDb.length) {
-					toast.push('Date already exist', { 
+					toast.push('Date already exist', {
 						classes: ['warn']
 					});
 					throw error(403, 'Date already exists');
@@ -80,17 +83,16 @@
 				const todoUpdatedWithRev = await createTodo(false, DateInputValue);
 				await tick();
 				todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
-				openPopup = false;
+				$dateTarget.hide();
 			} else {
-				toast.push('Date already exist', { 
+				toast.push('Date already exist', {
 					classes: ['warn']
-				})
-				openPopup = false;
+				});
 			}
-		}catch (err) {
+		} catch (err) {
 			console.log('Todo Date Creattion failed', err);
 		}
-	}
+	};
 
 	onMount(async () => {
 		try {
@@ -114,7 +116,7 @@
 				const isTodayExist = todoUpdatedWithRev.some((item) => item._id === today);
 				if (!isTodayExist) {
 					const { docs: todayDoc } = await db.find({
-						selector: {'_id': { $eq: today }},
+						selector: { _id: { $eq: today } },
 						limit: 1
 					});
 					if (!todayDoc.length) {
@@ -131,29 +133,54 @@
 		} catch (err) {
 			console.log(err);
 		}
+
+		new AirDatepicker('#add-todo-trigger', {
+			isMobile: true,
+			locale: AirDatelocaleEn,
+			buttons: [
+				{
+					content(dp) {
+						return 'Add';
+					},
+					onClick(dp) {
+						console.log(dp)
+						//@ts-ignore
+						const dpDate = dp.lastSelectedDate ?? todayDate;
+						//@ts-ignore
+						DateInputValue = formatDateRegular(dpDate);
+						
+						addDate(dp);
+					}
+				}
+			],
+			onSelect: ({ datepicker }) => {
+				//@ts-ignore
+				datepicker.$el.value = ''
+			}
+		});
 	});
 
 	const removeTodo = async (todoId: TODO['_id']) => {
 		try {
-		const removedDoc = _.remove(todos, { '_id': todoId });
-		//@ts-ignore
-		await db.remove(removedDoc[0]);
-		await tick()
-		todos = todos;
+			const removedDoc = _.remove(todos, { _id: todoId });
+			//@ts-ignore
+			await db.remove(removedDoc[0]);
+			await tick();
+			todos = todos;
 		} catch (err) {
 			console.log(err);
 		}
-	}
+	};
 
 	const getMoreDates = async (type: 'prev' | 'next' = 'prev') => {
-		switch(type) {
+		switch (type) {
 			case 'next':
 				const { docs: nextDocs } = await db.find({
 					selector: { _id: { $gte: todoNextPaginationStartid } },
 					sort: [{ _id: 'asc' }],
 					limit: 5
 				});
-				await tick()
+				await tick();
 				//@ts-ignore
 				todos = _.orderBy([...nextDocs, ...todos], ['_id']);
 				break;
@@ -163,41 +190,41 @@
 					sort: [{ _id: 'desc' }],
 					limit: 5
 				});
-				await tick()
+				await tick();
 				//@ts-ignore
 				todos = _.orderBy([...todos, ...prevDocs], ['_id']);
 		}
-	}
+	};
 
 	const setMoreStartEndIds = async () => {
-			const currentStartId = _.get(todos, '[0]._id')
-			const currentEndId = _.maxBy(todos, '_id')?._id;
+		const currentStartId = _.get(todos, '[0]._id');
+		const currentEndId = _.maxBy(todos, '_id')?._id;
 
-			console.log(currentStartId);
-			console.log(currentEndId)
+		console.log(currentStartId);
+		console.log(currentEndId);
 
-			const { docs: prevDocsMore } = await db.find({
-				selector: { _id: { $lt: currentStartId } },
-				sort: [{ _id: 'desc' }],
-				limit: 2
-			});
+		const { docs: prevDocsMore } = await db.find({
+			selector: { _id: { $lt: currentStartId } },
+			sort: [{ _id: 'desc' }],
+			limit: 2
+		});
 
-			const { docs: nextDocsMore } = await db.find({
-				selector: { _id: { $gt: currentEndId } },
-				sort: [{ _id: 'asc' }],
-				limit: 2
-			});
+		const { docs: nextDocsMore } = await db.find({
+			selector: { _id: { $gt: currentEndId } },
+			sort: [{ _id: 'asc' }],
+			limit: 2
+		});
 
-			await tick()
+		await tick();
 
-			todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0]._id : null;	
-			todoNextPaginationStartid = nextDocsMore.length ? nextDocsMore[0]._id : null;	
+		todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0]._id : null;
+		todoNextPaginationStartid = nextDocsMore.length ? nextDocsMore[0]._id : null;
+	};
+
+	$: if (todos.length) {
+		setMoreStartEndIds();
 	}
-
-	$: if (todos.length) { 
-		setMoreStartEndIds() 
-	}
-	let openPopup = false; 
+	// let openPopup = false;
 </script>
 
 <section
@@ -207,64 +234,77 @@
 >
 	<div class="dt-todo-task-container">
 		{#if todoPrevPaginationStartid}
-		<Button slot="control" ripple variant="default" on:click={() => getMoreDates('prev')} override={{
-			border: 'none',
-			background: 'transparent',
-			'&:hover': {
-				background: 'transparent'
-			}
-		}}><DotsHorizontal /> Load Previous Dates</Button>
+			<Button
+				slot="control"
+				ripple
+				variant="default"
+				on:click={() => getMoreDates('prev')}
+				override={{
+					border: 'none',
+					background: 'transparent',
+					'&:hover': {
+						background: 'transparent'
+					}
+				}}><DotsHorizontal /> Load Previous Dates</Button
+			>
 		{/if}
 		<div class="accordion-container">
 			<Accordion>
-		{#each todos as todo, i (todo._id)}
-			<TaskComponent {todo} isOpen={todo._id === today} containerId="dt-todo-container" removeTodo={removeTodo} />
-		{/each}
-		</Accordion>
+				{#each todos as todo, i (todo._id)}
+					<TaskComponent
+						{todo}
+						isOpen={todo._id === today}
+						containerId="dt-todo-container"
+						{removeTodo}
+					/>
+				{/each}
+			</Accordion>
 		</div>
 		{#if todoNextPaginationStartid}
-		<Button slot="control" ripple variant="default" on:click={() => getMoreDates('next')} override={{
-			border: 'none',
-			background: 'transparent',
-			'&:hover': {
-				background: 'transparent'
-			}
-		}}><DotsHorizontal /> Load Next Dates</Button>
+			<Button
+				slot="control"
+				ripple
+				variant="default"
+				on:click={() => getMoreDates('next')}
+				override={{
+					border: 'none',
+					background: 'transparent',
+					'&:hover': {
+						background: 'transparent'
+					}
+				}}><DotsHorizontal /> Load Next Dates</Button
+			>
 		{/if}
 	</div>
 
-	  <div class="flexy fixed z-50 bottom-7 left-1/2 transform -translate-x-1/2">
+	<div class="flexy fixed z-50 bottom-7 left-1/2 transform -translate-x-1/2">
 		<div class="margins">
-		  <!--
-			I'm using viewBox="2 2 20 20" instead of
-			viewBox="0 0 24 24" because the mdiPlus icon
-			is particularly small. This embiggens it.
-		  -->
-		  <Fab on:click={() => { openPopup = true }}>
-			<Icon tag="svg" viewBox="2 2 20 20">
-			  <path fill="currentColor" d={mdiPlus} />
-			</Icon>
-		  </Fab>
+			<Fab>
+				<Icon tag="svg" viewBox="2 2 20 20">
+					<path fill="currentColor" d={mdiPlus} />
+				</Icon>
+				<input type="button" id="add-todo-trigger" class="absolute w-full h-full" />
+			</Fab>
 		</div>
-	  </div>
-	  <Dialog
+	</div>
+	<!-- <Dialog
 		bind:open={openPopup}
 		fullscreen
 		aria-labelledby="dd-date-popup-title"
 		aria-describedby="dd-date-popup-content"
 		surface$style="min-height: 50vh; max-height: 60vh;width: 300px;max-width: calc(100vw - 32px);"
-		>	
-			<Title id="add-date-popup-title" class="text-center">Add date</Title>
+	>
+		<Title id="add-date-popup-title" class="text-center">Add date</Title>
 		<DialogContent id="add-date-popup-content" class="text-center">
 			<DateInput format="yyyy-MM-dd" visible closeOnSelection={true} bind:value={DateInputValue} />
 		</DialogContent>
 		<Actions>
-			<MateriaButton on:click={() => openPopup = false }>
-			<Label>Cancel</Label>
+			<MateriaButton on:click={() => (openPopup = false)}>
+				<Label>Cancel</Label>
 			</MateriaButton>
 			<MateriaButton on:click={addDate}>
-			<Label>Submit</Label>
+				<Label>Submit</Label>
 			</MateriaButton>
 		</Actions>
-		</Dialog>
+	</Dialog> -->
 </section>

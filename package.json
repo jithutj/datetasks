@@ -65,6 +65,7 @@
 		"@capacitor/core": "^5.5.1",
 		"@svelteuidev/composables": "^0.15.3",
 		"@svelteuidev/core": "^0.15.3",
+		"air-datepicker": "^3.4.0",
 		"events": "^3.3.0",
 		"kolorist": "^1.8.0",
 		"lodash": "^4.17.21",
