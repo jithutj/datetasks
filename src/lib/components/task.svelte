@@ -208,7 +208,7 @@
 			</div>
 			<div class="flex items-center justify-between">
 			<Title id={`todo-${todo._id}-popup-title`}>
-				{formatDateReadable(todo._id)}
+				{formatDateReadable(todo.dateIso)}
 			</Title>
 			<Actions>
 				<MateriaButton variant="raised" action="accept" on:click={() => editMode ? updateTask() : addTask ()}>
