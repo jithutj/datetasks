@@ -20,7 +20,7 @@
 	import AirDatepicker from 'air-datepicker';
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
 	import 'air-datepicker/air-datepicker.css';
-	import type { HTMLDataAttributes } from 'svelte/elements';
+
 
 	const db = Database.getInstance().getDB();
 
@@ -225,6 +225,7 @@
 		setMoreStartEndIds();
 	}
 	// let openPopup = false;
+
 </script>
 
 <section

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+npm run build
+
 # Run npx cap sync
 npx cap sync
 
