@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { TaskComponent, Database } from '$lib';
 	import type { TODO } from '$lib/types';
-	import { formatDateISO, formatDateISODateOnly, formatDateRegular } from '$lib/utils/date';
+	import { formatDateISO, formatDateOnly, formatDateRegular } from '$lib/utils/date';
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
 	/* import { DateInput } from 'date-picker-svelte'; */
@@ -29,12 +29,12 @@
 	let todoNextPaginationStartid: string | null = null;
 
 	const todayDate = new Date();
-	const today = formatDateISODateOnly(todayDate);
+	const today = formatDateOnly(todayDate);
 	let DateInputValue = todayDate;
 
 	const createTodo = async (shouldIndex: boolean = false, dateInput: Date = todayDate) => {
 		const todoDefault: TODO = {
-			_id: formatDateISODateOnly(dateInput),
+			_id: formatDateOnly(dateInput),
 			dateIso: formatDateISO(dateInput),
 			tasks: []
 		};
@@ -65,10 +65,12 @@
 
 	const addDate = async ($dateTarget: any) => {
 		try {
-			const isDateExist = todos.some((item) => item._id === formatDateISODateOnly(DateInputValue));
+			console.log(DateInputValue)
+			console.log(formatDateOnly(DateInputValue))
+			const isDateExist = todos.some((item) => item._id === formatDateOnly(DateInputValue));
 			if (!isDateExist) {
 				const { docs: isDateExistInDb } = await db.find({
-					selector: { _id: { $eq: formatDateISODateOnly(DateInputValue) } },
+					selector: { _id: { $eq: formatDateOnly(DateInputValue) } },
 					limit: 1
 				});
 				await tick();
@@ -251,6 +253,8 @@
 						isOpen={todo._id === today}
 						containerId="dt-todo-container"
 						{removeTodo}
+						bind:todos={todos}
+						createTodo={createTodo}
 					/>
 				{/each}
 			</Accordion>
