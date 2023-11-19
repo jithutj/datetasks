@@ -1,28 +1,30 @@
 <script lang="ts">
 	import { Database } from '$lib';
-	import type { TODO } from '$lib/types';
+	import type { TODO, Task } from '$lib/types';
 	import _ from 'lodash';
-	import { formatDateReadable } from '$lib/utils/date';
-	import { ActionIcon, Button, Menu } from '@svelteuidev/core';
+	import { formatDateOnly, formatDateReadable, formatDateRegular } from '$lib/utils/date';
+	import { Menu } from '@svelteuidev/core';
 	//@ts-ignore
-	import { Trash, Pencil1, DotsVertical, Check } from 'radix-icons-svelte';
-	//@ts-ignore
-	import Accordion, { Panel, Header, Content as AccordionContent } from '@smui-extra/accordion';
+	import { Panel, Header, Content as AccordionContent } from '@smui-extra/accordion';
 
-	import Paper, { Subtitle } from '@smui/paper';
 	import IconButton, { Icon } from '@smui/icon-button';
 	import { default as MaterialMenu } from '@smui/menu';
-	import List, { Item, Separator, Text, Meta, Graphic, Group } from '@smui/list';
+	import List, { Item, Text, Meta, Graphic } from '@smui/list';
 	import Textfield from '@smui/textfield';
-	import HelperText from '@smui/textfield/helper-text';
 	import { Label, default as MaterialButton } from '@smui/button';
 	import Checkbox from '@smui/checkbox';
 	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
+	import AirDatepicker from 'air-datepicker';
+	import AirDatelocaleEn from 'air-datepicker/locale/en';
+	import { onMount, tick } from 'svelte';
+	import { error } from '@sveltejs/kit';
 
+	export let todos: TODO[];
 	export let todo: TODO;
 	export let isOpen: boolean;
 	export let containerId: string;
 	export let removeTodo: (todoId: TODO['_id']) => void;
+	export let createTodo: any;
 
 	const db = Database.getInstance().getDB();
 
@@ -32,9 +34,11 @@
 	let editIds: number[] = []; // inline edit ids
 	let inlineLastEditId: number = 0;
 	let textElem: { [key: number]: HTMLTextAreaElement } = {};
-	let todoClone: TODO = todo;
+	let todoClone: TODO | null = todo;
 	let triggerSync = false;
 	let todoDesc = '';
+	let isTaskDateChanged = false;
+	let taskDateChangeDestTodo: TODO | null = null 
 
 	function scrollToBottom() {
 		const container = document.getElementById(containerId);
@@ -44,17 +48,28 @@
 
 	const persistState = async () => {
 		try {
+			if (todoClone) {
 			const { rev } = await db.put(todoClone);
 			todoClone._rev = rev;
-			todo = todoClone;
+			if (!isTaskDateChanged) {
+				todo = todoClone;
+			} else {
+				const t_index = todos.findIndex(item => item._id === todoClone?._id);
+				const tk_index = todos[t_index].tasks.findIndex(task => task.id === editId);
+				todos[t_index].tasks[tk_index].desc = todoDesc;
+			}
 			triggerSync = false;
 			if (editMode) {
 				todoDesc = '';
 				editMode = false;
 				editId = 0;
+				isTaskDateChanged = false;
+				todoClone = null;
+				taskDateChangeDestTodo = null;
 			}
 			if (inlineLastEditId) {
 				editIds = _.without(editIds, inlineLastEditId);
+			}
 			}
 		} catch (err) {
 			console.log(err);
@@ -81,7 +96,14 @@
 	};
 
 	const updateTask = (taskid: number = 0, desc: string = '') => {
-		todoClone = todo;
+		if (!isTaskDateChanged) {
+			todoClone = todo;
+		} else {
+			if (taskDateChangeDestTodo) {
+				todoClone = taskDateChangeDestTodo;
+			}
+		}
+		if (todoClone) {
 		//inline updation
 		if (taskid) {
 			const index = todoClone.tasks.findIndex((task) => task.id === taskid);
@@ -91,6 +113,7 @@
 			todoClone.tasks[index].desc = todoDesc;
 		}
 		triggerSync = true;
+		}
 	};
 
 	const removeTask = () => {
@@ -104,8 +127,10 @@
 		//@ts-ignore
 		const taskid = parseInt(e.target.value);
 		const index = todo.tasks.findIndex((task) => task.id === taskid);
-		todoClone.tasks[index].isDone = !todo.tasks[index].isDone;
-		triggerSync = true;
+		if (todoClone) {
+			todoClone.tasks[index].isDone = !todo.tasks[index].isDone;
+			triggerSync = true;
+		}
 	};
 
 	const toggleTaskMenu = (e: MouseEvent) => {
@@ -129,6 +154,134 @@
 		confirmPopupContent = content;
 		confirmPopupCallback = cb;
 		openConfirmPopup = true;
+	}
+
+	const persistStateMulti = async (values: TODO[]) => {
+		try {
+			const result = await db.bulkDocs(values);
+			await tick();
+			const updatedValues = _.map(values, (value) => {
+				const resultItem = _.find(result, { id: value._id });
+				if (resultItem) {
+					return _.merge({}, value, { _rev: resultItem.rev });
+				}
+				return value;
+			});
+			return updatedValues;
+		} catch(err) {
+			console.log(err)
+			throw error(500, 'failed to update')
+		}
+	}
+
+	const changeDate = async ($dateTarget: any, dateInput: Date) => {
+		const isSameDate = todo._id === formatDateOnly(dateInput);
+		if (!isSameDate) {
+			const { docs: moveDateTodo } = await db.find({
+					selector: { _id: { $eq: formatDateOnly(dateInput) } },
+					limit: 1
+			});
+			await tick();
+			const taskToMove = todo.tasks.find(task => task.id === editId);
+			if (moveDateTodo.length) {
+				
+				const destTodo = todos.find((item) => item._id === formatDateOnly(dateInput));
+
+				if (taskToMove && destTodo) {
+					switchTask(taskToMove, todo, destTodo);
+				} else if (taskToMove && !destTodo) {
+					//@ts-ignore
+					switchTask(taskToMove, todo, moveDateTodo[0], false);
+				}
+			} else {
+				try {
+					const destTodo = await createTodo(false, dateInput);
+					await tick();
+					console.log(destTodo)
+					if (taskToMove) {
+						switchTask(taskToMove, todo, destTodo[0], false, true);
+					}
+				} catch (err) {
+
+				}
+			}
+
+			//non persistance switching
+			async function switchTask(task: Task, source: TODO, dest: TODO, isDestInTodos = true, isNewDest = false) {
+				let sourceClone = source;
+				let destClone = dest;
+				
+				// Find the index of the task in the source tasks array
+				const indexToRemove = sourceClone.tasks.findIndex(t => t.id === task.id);
+
+				if (indexToRemove !== -1) {
+					// Remove the task from the source tasks array
+					const removedTask = sourceClone.tasks.splice(indexToRemove, 1)[0];
+					console.log(destClone);
+					if (destClone.tasks) {
+						// Check if the id already exists in the destination tasks array
+						const existingDestTask = destClone.tasks.find(t => t.id === removedTask.id);
+
+						if (existingDestTask) {
+							// If the id already exists, increment its value
+							removedTask.id = Math.max(...destClone.tasks.map(t => t.id)) + 1;
+						}
+					} else {
+						removedTask.id = 0;
+					}
+
+					// Add the task to the destination tasks array
+					destClone.tasks.push(removedTask);
+
+					try {
+						let valuesWithUpdatedRev = null;
+						// create todo
+						if (isNewDest) {
+							const valuesClone = [sourceClone];
+							valuesWithUpdatedRev = await persistStateMulti(valuesClone)
+						} else {
+							const valuesClone = [sourceClone, destClone];
+							valuesWithUpdatedRev = await persistStateMulti(valuesClone)
+						}
+						await tick();
+
+						if (valuesWithUpdatedRev) {
+							console.log(valuesWithUpdatedRev);
+							_.each(valuesWithUpdatedRev, (value) => {
+								if (value._id === sourceClone._id) {
+									sourceClone._rev = value._rev;
+								}
+								if (value._id === destClone._id) {
+									destClone._rev = value._rev;
+								}
+							});
+
+							source = sourceClone;
+							dest = destClone;
+							// pushing to todos array if not exist
+							if (!isDestInTodos) {
+								todos = _.orderBy([...todos, dest], ['_id']);
+							} else {
+								// reassign to reflect in state
+								todos = todos;
+							}
+
+							isTaskDateChanged = true;
+							taskDateChangeDestTodo = dest;
+							editId = removedTask.id;
+
+							return true;
+						}
+					}catch(err) {
+
+					}
+					
+				} else {
+					console.log("Task not found in the source tasks array.");
+				}
+				
+			}
+		}
 	}
 </script>
 
@@ -183,8 +336,8 @@
 										<List>
 											<Item
 												on:SMUI:action={() => {
+													viewMode = false;
 													if (!editMode || editId !== task.id) {
-														viewMode = false;
 														editMode = true;
 														editId = task.id;
 														todoDesc = task.desc;
@@ -245,8 +398,34 @@
 			</div>
 			<div class="flex items-center justify-between">
 				<Title id={`todo-${todo._id}-popup-title`}>
-					{formatDateReadable(todo.dateIso)}
-				</Title>
+					{(isTaskDateChanged && taskDateChangeDestTodo) ? formatDateReadable(taskDateChangeDestTodo.dateIso) : formatDateReadable(todo.dateIso)}
+					<MaterialButton on:click={() =>{ 
+						new AirDatepicker(`#todo-${todo._id}-popup-title`, {
+							locale: AirDatelocaleEn,
+							buttons: [
+								{
+									content(dp) {
+										return 'Update Date';
+									},
+									onClick(dp) {
+										//@ts-ignore
+										const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
+										//@ts-ignore
+										const DateInputValue = formatDateRegular(dpDate);
+										
+										changeDate(dp, DateInputValue);
+										dp.destroy();
+									}
+								}
+							]
+						});
+						}
+					}>
+						<Icon class="material-icons">
+							edit
+						</Icon>
+					</MaterialButton>
+					</Title>
 				{#if !viewMode}
 					<Actions>
 						<MaterialButton
