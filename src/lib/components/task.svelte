@@ -16,13 +16,12 @@
 	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
 	import AirDatepicker from 'air-datepicker';
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
-	import { onMount, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { error } from '@sveltejs/kit';
 
 	export let todos: TODO[];
 	export let todo: TODO;
 	export let isOpen: boolean;
-	export let containerId: string;
 	export let removeTodo: (todoId: TODO['_id']) => void;
 	export let createTodo: any;
 
@@ -33,19 +32,13 @@
 	let editId: number = 0;
 	let editIds: number[] = []; // inline edit ids
 	let inlineLastEditId: number = 0;
-	let textElem: { [key: number]: HTMLTextAreaElement } = {};
+	// let textElem: { [key: number]: HTMLTextAreaElement } = {};
 	let todoClone: TODO | null = todo;
 	let triggerSync = false;
 	let todoDesc = '';
 	let isTaskDateChanged = false;
 	let taskDateChangeDestTodo: TODO | null = null;
 	let taskChangeDate: Date | null = null;
-
-	function scrollToBottom() {
-		const container = document.getElementById(containerId);
-		//@ts-ignore
-		container.scrollTop = container.scrollHeight;
-	}
 
 	const persistState = async () => {
 		try {
@@ -60,7 +53,7 @@
 					const index = todoClone.tasks.findIndex((task) => task.id === editId);
 					todos[t_index].tasks[tk_index].desc = todoClone.tasks[index].desc;
 				}
-				
+
 				if (editMode) {
 					todoDesc = '';
 					editMode = false;
@@ -111,8 +104,8 @@
 						todoClone = taskDateChangeDestTodo;
 					}
 				}
-			} catch(err) {
-				console.log(err)
+			} catch (err) {
+				console.log(err);
 			}
 		}
 		if (todoClone) {
@@ -146,7 +139,7 @@
 		}
 	};
 
-	const toggleTaskMenu = (e: MouseEvent) => {
+	/* const toggleTaskMenu = (e: MouseEvent) => {
 		//@ts-ignore
 		const target = e.target.getAttribute('data-target');
 		//@ts-ignore
@@ -155,7 +148,7 @@
 		targetEl.classList.toggle('hidden');
 		//@ts-ignore
 		targetEl.classList.toggle('flex');
-	};
+	}; */
 
 	let openPopup = false;
 	let openConfirmPopup = false;
@@ -421,9 +414,10 @@
 			</div>
 			<div class="flex items-center justify-between">
 				<Title id={`todo-${todo._id}-popup-title`}>
-					{(isTaskDateChanged && taskChangeDate)
+					{isTaskDateChanged && taskChangeDate
 						? formatDateReadable(taskChangeDate.toISOString())
 						: formatDateReadable(todo.dateIso)}
+					{#if !viewMode && (editId && editMode)}	
 					<MaterialButton
 						on:click={() => {
 							new AirDatepicker(`#todo-${todo._id}-popup-title`, {
@@ -449,6 +443,7 @@
 					>
 						<Icon class="material-icons">edit</Icon>
 					</MaterialButton>
+					{/if}
 				</Title>
 				{#if !viewMode}
 					<Actions>

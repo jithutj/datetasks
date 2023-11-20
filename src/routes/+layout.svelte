@@ -3,19 +3,15 @@
 	import { onMount } from 'svelte';
 	import { SvelteUIProvider } from '@svelteuidev/core';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
-	import { Loader } from '@svelteuidev/core';
 	// import { pwaInfo } from 'virtual:pwa-info';
 	import '../app.postcss';
-	import TopAppBar, { Section as TopSection, Title, Row } from '@smui/top-app-bar';
 	import IconButton from '@smui/icon-button';
 	import Drawer, { Content, Header, Title as DrawerTitle, Subtitle } from '@smui/drawer';
 	import List, { Item, Text } from '@smui/list';
 	import Fab, { Icon } from '@smui/fab';
 	import BottomAppBar, { Section as BottomSection, AutoAdjust } from '@smui-extra/bottom-app-bar';
-
+	import CircularProgress from '@smui/circular-progress';
 	// $: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
-
-	let topAppBar: TopAppBar;
 
 	let open = false;
 	let menuActive = 'Inbox';
@@ -54,26 +50,38 @@
 </svelte:head>
 
 <SvelteUIProvider withNormalizeCSS withGlobalStyles>
-	<div class="flexy">
-		<div class="bottom-app-bar-container flexor">
-			<div class="flexor-content">
-				{#if isLoading}
+	{#if isLoading}
 					<div
 						class="loading-indicator fixed w-full h-full bg-white z-50 flex items-center justify-center"
 					>
-						<Loader />
+					<div style="display: flex; justify-content: center">
+						<CircularProgress
+						  style="height: 32px; width: 32px;"
+						  indeterminate
+						  fourColor
+						/>
+					  </div>
 					</div>
 				{/if}
-				<slot />
-			</div>
-			<BottomAppBar bind:this={bottomAppBar} variant="fixed" class="flex">
-				<BottomSection class="flex-auto p-3">
-					<IconButton class="material-icons" aria-label="Menu" on:click={() => (open = !open)}>menu</IconButton>
-				</BottomSection>
-				<BottomSection class="flex-0 p-3">
-					<IconButton class="material-icons" aria-label="Search">search</IconButton>
-				</BottomSection>
-				<div
+				<AutoAdjust {bottomAppBar}>
+	<div class="main-container container py-1 m-auto" data-theme="cupcake">
+		
+		<div class="main-inner-container flexor">
+			
+				<div class="flexor-content px-2 py-2">
+					<slot />
+				</div>
+			
+				<BottomAppBar bind:this={bottomAppBar} variant="fixed" class="flex z-10">
+					<BottomSection class="flex-1 p-3">
+						<IconButton class="material-icons" aria-label="Menu" on:click={() => (open = !open)}>menu</IconButton>
+					</BottomSection>
+					<BottomSection class="flex-1 p-3 justify-right-forced">
+						<IconButton class="material-icons" aria-label="Search">search</IconButton>
+					</BottomSection>
+				</BottomAppBar>
+			
+			<div
 					on:keydown={() => {}}
 					role="button"
 					tabindex="0"
@@ -105,9 +113,10 @@
 						</Item>
 					</Drawer>
 				</div>
-			</BottomAppBar>
 		</div>
+	
 	</div>
+</AutoAdjust>
 </SvelteUIProvider>
 
 <SvelteToast />
@@ -130,24 +139,25 @@
 		position: relative;
 		display: flex;
 		max-width: 600px;
-		border: 1px solid var(--mdc-theme-text-hint-on-background, rgba(0, 0, 0, 0.1));
 		overflow: hidden;
 		z-index: 9999;
 	}
 
-	.bottom-app-bar-container {
+	.main-inner-container  {
 		width: 100%;
 		height: 100vh;
-		border: 1px solid var(--mdc-theme-text-hint-on-background, rgba(0, 0, 0, 0.1));
-		margin: 0 18px 18px 0;
-		background-color: var(--mdc-theme-background, #fff);
 		overflow: auto;
 		display: inline-block;
+		max-width: 990px;
+		margin: auto;
+		background-color: var(--mdc-theme-background, #fff);
 	}
 
-	.flexy {
+	.main-container {
 		display: flex;
 		flex-wrap: wrap;
+		margin: auto;
+		background-color: var(--mdc-theme-background, #fff);
 	}
 
 	.flexor {
