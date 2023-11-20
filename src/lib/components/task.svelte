@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Database } from '$lib';
 	import type { TODO, Task } from '$lib/types';
-	import _ from 'lodash';
+	import _, { add } from 'lodash';
 	import { formatDateOnly, formatDateReadable, formatDateRegular } from '$lib/utils/date';
 	import { Menu } from '@svelteuidev/core';
 	//@ts-ignore
@@ -32,22 +32,25 @@
 	let editId: number = 0;
 	let editIds: number[] = []; // inline edit ids
 	let inlineLastEditId: number = 0;
+	let addMode: boolean = false;
 	// let textElem: { [key: number]: HTMLTextAreaElement } = {};
 	let todoClone: TODO | null = todo;
 	let triggerSync = false;
 	let todoDesc = '';
-	let isTaskDateChanged = false;
+	let isTaskDateEditChanged = false;
 	let taskDateChangeDestTodo: TODO | null = null;
-	let taskChangeDate: Date | null = null;
+	let taskChangeEditDate: Date | null = null;
+	let taskChangeAddDate: Date | null = null;
+	let isTaskDateAddChanged = false;
 
 	const persistState = async () => {
 		try {
 			if (todoClone) {
 				const { rev } = await db.put(todoClone);
 				todoClone._rev = rev;
-				if (!isTaskDateChanged) {
+				if (!isTaskDateEditChanged && !isTaskDateAddChanged) {
 					todo = todoClone;
-				} else {
+				} else if (isTaskDateEditChanged){
 					const t_index = todos.findIndex((item) => item._id === todoClone?._id);
 					const tk_index = todos[t_index].tasks.findIndex((task) => task.id === editId);
 					const index = todoClone.tasks.findIndex((task) => task.id === editId);
@@ -58,10 +61,16 @@
 					todoDesc = '';
 					editMode = false;
 					editId = 0;
-					isTaskDateChanged = false;
+					isTaskDateEditChanged = false;
 					todoClone = null;
 					taskDateChangeDestTodo = null;
-					taskChangeDate = null;
+					taskChangeEditDate = null;
+				}
+				if (addMode) {
+					todoDesc = '';
+					taskChangeAddDate = null;
+					isTaskDateAddChanged = false;
+					addMode = false;
 				}
 				if (inlineLastEditId) {
 					editIds = _.without(editIds, inlineLastEditId);
@@ -76,29 +85,75 @@
 
 	$: triggerSync && persistState();
 
-	const addTask = () => {
-		if (!todoDesc) return;
-		todoClone = todo;
-		const tasks = todoClone.tasks;
-		let lastId =
-			tasks.length && tasks.length > 1
-				? tasks[tasks.length - 1].id
-				: tasks.length
-				? tasks[0].id
-				: 0;
+	const addTask = async () => {
+		if (!todoDesc) {
+			addMode = false;
+			taskChangeAddDate = null;
+			isTaskDateAddChanged = false;
+			return;
+		};
+		if (!isTaskDateAddChanged) {
+			todoClone = todo;
+		} else {
+			if (taskChangeAddDate) {
+				//@ts-ignore
+				let destTodo = todos.find((item) => item._id === formatDateOnly(taskChangeAddDate));
+				if (!destTodo) {
+					const { docs: addDateTodo } = await db.find({
+					selector: { _id: { $eq: formatDateOnly(taskChangeAddDate) } },
+					limit: 1
+					});
+					await tick();
+					if (addDateTodo.length) {
+						//@ts-ignore
+						destTodo = addDateTodo[0];
+					} else {
+						try {
+							const result = await createTodo(false, taskChangeAddDate);
+							await tick();
+							if  (result.length) {
+								destTodo = result[0];
+							} 
+						}catch(err) {
+							console.log(err)
+						}
+						
+					}
 
-		todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }];
-		todoDesc = '';
-		triggerSync = true;
+					if (destTodo) {
+						todos = _.orderBy([...todos, destTodo], ['_id']);
+						todoClone = destTodo;
+					}
+
+
+				} else {
+					todoClone = destTodo;
+					todos = todos;
+				}
+			}
+		}
+		if (todoClone) {
+			const tasks = todoClone.tasks;
+			let lastId =
+				tasks.length && tasks.length > 1
+					? tasks[tasks.length - 1].id
+					: tasks.length
+					? tasks[0].id
+					: 0;
+
+			todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }];
+			triggerSync = true;
+			todoDesc = '';
+		}
 	};
 
 	const updateTask = async (taskid: number = 0, desc: string = '') => {
-		if (!isTaskDateChanged) {
+		if (!isTaskDateEditChanged) {
 			todoClone = todo;
 		} else {
 			try {
-				if (taskChangeDate) {
-					const status = await changeDate(taskChangeDate);
+				if (taskChangeEditDate) {
+					const status = await changeDate(taskChangeEditDate);
 					await tick();
 					if (status && taskDateChangeDestTodo) {
 						todoClone = taskDateChangeDestTodo;
@@ -280,7 +335,7 @@
 								todos = todos;
 							}
 
-							isTaskDateChanged = true;
+							isTaskDateEditChanged = true;
 							taskDateChangeDestTodo = dest;
 							editId = removedTask.id;
 
@@ -338,6 +393,8 @@
 						<Text
 							on:click={() => {
 								viewMode = true;
+								addMode = false;
+								editMode = false;
 								todoDesc = task.desc;
 								openPopup = true;
 							}}
@@ -353,6 +410,7 @@
 											<Item
 												on:SMUI:action={() => {
 													viewMode = false;
+													addMode = false;
 													if (!editMode || editId !== task.id) {
 														editMode = true;
 														editId = task.id;
@@ -389,10 +447,11 @@
 				color="primary"
 				variant="unelevated"
 				on:click={() => {
+					todoDesc = '';
+					addMode = true;
 					editId = 0;
 					editMode = false;
 					viewMode = false;
-					todoDesc = '';
 					openPopup = true;
 				}}
 			>
@@ -414,10 +473,14 @@
 			</div>
 			<div class="flex items-center justify-between">
 				<Title id={`todo-${todo._id}-popup-title`}>
-					{isTaskDateChanged && taskChangeDate
-						? formatDateReadable(taskChangeDate.toISOString())
-						: formatDateReadable(todo.dateIso)}
-					{#if !viewMode && (editId && editMode)}	
+					{#if isTaskDateEditChanged && taskChangeEditDate}
+						{formatDateReadable(taskChangeEditDate.toISOString())}
+					{:else if isTaskDateAddChanged && taskChangeAddDate}
+						{formatDateReadable(taskChangeAddDate.toISOString())}
+					{:else}
+						{formatDateReadable(todo.dateIso)}
+					{/if}
+					{#if !viewMode && ((editId && editMode) || addMode)}	
 					<MaterialButton
 						on:click={() => {
 							new AirDatepicker(`#todo-${todo._id}-popup-title`, {
@@ -431,8 +494,14 @@
 											//@ts-ignore
 											const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
 											//@ts-ignore
-											taskChangeDate = formatDateRegular(dpDate);
-											isTaskDateChanged = true;
+											
+											if (editId && editMode) {
+												isTaskDateEditChanged = true;
+												taskChangeEditDate = formatDateRegular(dpDate);
+											} else {
+												isTaskDateAddChanged = true;
+												taskChangeAddDate = formatDateRegular(dpDate);
+											}
 											// changeDate(DateInputValue);
 											dp.destroy();
 										}
