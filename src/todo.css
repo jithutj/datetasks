@@ -113,8 +113,13 @@ label {
 	background: none !important;
 	padding: 0 !important;
 	border: none !important;
+	box-shadow: none !important;
 }
 
 .svelteui-MenuItem-root.itemHovered {
 	background-color: transparent !important;
+}
+
+.justify-right-forced {
+	justify-content: right !important;
 }

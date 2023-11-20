@@ -4,23 +4,16 @@
 	import { formatDateISO, formatDateOnly, formatDateRegular } from '$lib/utils/date';
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
-	/* import { DateInput } from 'date-picker-svelte'; */
-	import { DotsHorizontal, Plus } from 'radix-icons-svelte';
 	import { toast } from '@zerodevx/svelte-toast';
-
 	import '../todo.css';
-	import { Button } from '@svelteuidev/core';
 	import Accordion from '@smui-extra/accordion';
 	import { mdiPlus } from '@mdi/js';
 	import Fab, { Icon } from '@smui/fab';
-/* 	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
-	import { Label, default as MateriaButton } from '@smui/button';
-	import Header from '@smui-extra/accordion/src/Header.svelte'; */
+	import { default as MaterialButton } from '@smui/button';
 	import { error } from '@sveltejs/kit';
 	import AirDatepicker from 'air-datepicker';
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
 	import 'air-datepicker/air-datepicker.css';
-
 
 	const db = Database.getInstance().getDB();
 
@@ -65,8 +58,8 @@
 
 	const addDate = async ($dateTarget: any) => {
 		try {
-			console.log(DateInputValue)
-			console.log(formatDateOnly(DateInputValue))
+			console.log(DateInputValue);
+			console.log(formatDateOnly(DateInputValue));
 			const isDateExist = todos.some((item) => item._id === formatDateOnly(DateInputValue));
 			if (!isDateExist) {
 				const { docs: isDateExistInDb } = await db.find({
@@ -147,14 +140,14 @@
 						const dpDate = dp.lastSelectedDate ?? todayDate;
 						//@ts-ignore
 						DateInputValue = formatDateRegular(dpDate);
-						
+
 						addDate(dp);
 					}
 				}
 			],
 			onSelect: ({ datepicker }) => {
 				//@ts-ignore
-				datepicker.$el.value = ''
+				datepicker.$el.value = '';
 			}
 		});
 	});
@@ -221,60 +214,36 @@
 		setMoreStartEndIds();
 	}
 	// let openPopup = false;
-
 </script>
 
-<section
-	id="dt-todo-container"
-	class="dt-todo-container container max-w-screen-sm mx-auto px-3 py-3 max-h-screen overflow-y-auto"
-	data-theme="cupcake"
->
+<section id="dt-todo-container" class="dt-todo-container">
 	<div class="dt-todo-task-container">
 		{#if todoPrevPaginationStartid}
-			<Button
-				slot="control"
-				ripple
-				variant="default"
-				on:click={() => getMoreDates('prev')}
-				override={{
-					border: 'none',
-					background: 'transparent',
-					'&:hover': {
-						background: 'transparent'
-					}
-				}}><DotsHorizontal /> Load Previous Dates</Button
+			<MaterialButton on:click={() => getMoreDates('prev')}
+				><Icon class="material-icons">arrow_back_ios</Icon> Show Previous</MaterialButton
 			>
 		{/if}
 		<div class="accordion-container">
-			<Accordion>
+			<Accordion multiple>
 				{#each todos as todo, i (todo._id)}
 					<TaskComponent
 						{todo}
-						isOpen={todo._id === today}
-						containerId="dt-todo-container"
+						isOpen={true}
 						{removeTodo}
-						bind:todos={todos}
-						createTodo={createTodo}
+						bind:todos
+						{createTodo}
 					/>
 				{/each}
 			</Accordion>
 		</div>
 		{#if todoNextPaginationStartid}
-			<Button
-				slot="control"
-				ripple
-				variant="default"
-				on:click={() => getMoreDates('next')}
-				override={{
-					border: 'none',
-					background: 'transparent',
-					'&:hover': {
-						background: 'transparent'
-					}
-				}}><DotsHorizontal /> Load Next Dates</Button
-			>
+			<div class="flex justify-end">
+				<MaterialButton on:click={() => getMoreDates('next')}
+					>Show More <Icon class="material-icons">arrow_forward_ios</Icon></MaterialButton
+				>
+			</div>
 		{/if}
-		<div class="flexy z-auto fixed bottom-7 left-1/2 transform -translate-x-1/2">
+		<div class="flexy z-20 fixed bottom-7 left-1/2 transform -translate-x-1/2">
 			<div class="margins">
 				<Fab>
 					<Icon tag="svg" viewBox="2 2 20 20">
@@ -285,24 +254,4 @@
 			</div>
 		</div>
 	</div>
-	<!-- <Dialog
-		bind:open={openPopup}
-		fullscreen
-		aria-labelledby="dd-date-popup-title"
-		aria-describedby="dd-date-popup-content"
-		surface$style="min-height: 50vh; max-height: 60vh;width: 300px;max-width: calc(100vw - 32px);"
-	>
-		<Title id="add-date-popup-title" class="text-center">Add date</Title>
-		<DialogContent id="add-date-popup-content" class="text-center">
-			<DateInput format="yyyy-MM-dd" visible closeOnSelection={true} bind:value={DateInputValue} />
-		</DialogContent>
-		<Actions>
-			<MateriaButton on:click={() => (openPopup = false)}>
-				<Label>Cancel</Label>
-			</MateriaButton>
-			<MateriaButton on:click={addDate}>
-				<Label>Submit</Label>
-			</MateriaButton>
-		</Actions>
-	</Dialog> -->
 </section>
