@@ -226,13 +226,7 @@
 		<div class="accordion-container">
 			<Accordion multiple>
 				{#each todos as todo, i (todo._id)}
-					<TaskComponent
-						{todo}
-						isOpen={true}
-						{removeTodo}
-						bind:todos
-						{createTodo}
-					/>
+					<TaskComponent {todo} isOpen={true} {removeTodo} bind:todos {createTodo} />
 				{/each}
 			</Accordion>
 		</div>

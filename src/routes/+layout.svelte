@@ -51,37 +51,33 @@
 
 <SvelteUIProvider withNormalizeCSS withGlobalStyles>
 	{#if isLoading}
-					<div
-						class="loading-indicator fixed w-full h-full bg-white z-50 flex items-center justify-center"
-					>
-					<div style="display: flex; justify-content: center">
-						<CircularProgress
-						  style="height: 32px; width: 32px;"
-						  indeterminate
-						  fourColor
-						/>
-					  </div>
-					</div>
-				{/if}
-				<AutoAdjust {bottomAppBar}>
-	<div class="main-container container py-1 m-auto" data-theme="cupcake">
-		
-		<div class="main-inner-container flexor">
-			
+		<div
+			class="loading-indicator fixed w-full h-full bg-white z-50 flex items-center justify-center"
+		>
+			<div style="display: flex; justify-content: center">
+				<CircularProgress style="height: 32px; width: 32px;" indeterminate fourColor />
+			</div>
+		</div>
+	{/if}
+	<AutoAdjust {bottomAppBar}>
+		<div class="main-container container py-1 m-auto" data-theme="cupcake">
+			<div class="main-inner-container flexor">
 				<div class="flexor-content px-2 py-2">
 					<slot />
 				</div>
-			
+
 				<BottomAppBar bind:this={bottomAppBar} variant="fixed" class="flex z-10">
 					<BottomSection class="flex-1 p-3">
-						<IconButton class="material-icons" aria-label="Menu" on:click={() => (open = !open)}>menu</IconButton>
+						<IconButton class="material-icons" aria-label="Menu" on:click={() => (open = !open)}
+							>menu</IconButton
+						>
 					</BottomSection>
 					<BottomSection class="flex-1 p-3 justify-right-forced">
 						<IconButton class="material-icons" aria-label="Search">search</IconButton>
 					</BottomSection>
 				</BottomAppBar>
-			
-			<div
+
+				<div
 					on:keydown={() => {}}
 					role="button"
 					tabindex="0"
@@ -113,10 +109,9 @@
 						</Item>
 					</Drawer>
 				</div>
+			</div>
 		</div>
-	
-	</div>
-</AutoAdjust>
+	</AutoAdjust>
 </SvelteUIProvider>
 
 <SvelteToast />
@@ -143,7 +138,7 @@
 		z-index: 9999;
 	}
 
-	.main-inner-container  {
+	.main-inner-container {
 		width: 100%;
 		height: 100vh;
 		overflow: auto;
