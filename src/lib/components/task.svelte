@@ -18,6 +18,7 @@
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
 	import { tick } from 'svelte';
 	import { error } from '@sveltejs/kit';
+	import * as ContextMenu from '$lib/components/ui/context-menu/index';
 
 	export let todos: TODO[];
 	export let todo: TODO;
@@ -42,7 +43,11 @@
 	let taskChangeEditDate: Date | null = null;
 	let taskChangeAddDate: Date | null = null;
 	let isTaskDateAddChanged = false;
+	let isTaskDateEditCalnderOpen = false;
+	let remSchedule: Task['remSchedule'] = null;
+	let isRemNotified: Task['isRemNotified'] = false;
 
+	let isTaskReminderTimerOpen = false;
 	const persistState = async () => {
 		try {
 			if (todoClone) {
@@ -50,7 +55,7 @@
 				todoClone._rev = rev;
 				if (!isTaskDateEditChanged && !isTaskDateAddChanged) {
 					todo = todoClone;
-				} else if (isTaskDateEditChanged){
+				} else if (isTaskDateEditChanged) {
 					const t_index = todos.findIndex((item) => item._id === todoClone?._id);
 					const tk_index = todos[t_index].tasks.findIndex((task) => task.id === editId);
 					const index = todoClone.tasks.findIndex((task) => task.id === editId);
@@ -68,6 +73,7 @@
 				}
 				if (addMode) {
 					todoDesc = '';
+					todoClone = null;
 					taskChangeAddDate = null;
 					isTaskDateAddChanged = false;
 					addMode = false;
@@ -91,7 +97,7 @@
 			taskChangeAddDate = null;
 			isTaskDateAddChanged = false;
 			return;
-		};
+		}
 		if (!isTaskDateAddChanged) {
 			todoClone = todo;
 		} else {
@@ -100,8 +106,8 @@
 				let destTodo = todos.find((item) => item._id === formatDateOnly(taskChangeAddDate));
 				if (!destTodo) {
 					const { docs: addDateTodo } = await db.find({
-					selector: { _id: { $eq: formatDateOnly(taskChangeAddDate) } },
-					limit: 1
+						selector: { _id: { $eq: formatDateOnly(taskChangeAddDate) } },
+						limit: 1
 					});
 					await tick();
 					if (addDateTodo.length) {
@@ -111,21 +117,18 @@
 						try {
 							const result = await createTodo(false, taskChangeAddDate);
 							await tick();
-							if  (result.length) {
+							if (result.length) {
 								destTodo = result[0];
-							} 
-						}catch(err) {
-							console.log(err)
+							}
+						} catch (err) {
+							console.log(err);
 						}
-						
 					}
 
 					if (destTodo) {
 						todos = _.orderBy([...todos, destTodo], ['_id']);
 						todoClone = destTodo;
 					}
-
-
 				} else {
 					todoClone = destTodo;
 					todos = todos;
@@ -164,7 +167,7 @@
 			}
 		}
 		if (todoClone) {
-			//inline updation
+			//inline updation - @deprecated
 			if (taskid) {
 				const index = todoClone.tasks.findIndex((task) => task.id === taskid);
 				todoClone.tasks[index].desc = desc;
@@ -358,11 +361,11 @@
 
 <Panel bind:open={isOpen}>
 	<Header>
-		<div class="flex items-center">
+		<div class="flex items-center px-5">
 			<div class="w-11/12">
 				{formatDateReadable(todo.dateIso)}
 			</div>
-			<div class="w-1/12">
+			<div class="w-1/12 flex justify-end">
 				<IconButton
 					class="material-icons"
 					on:click={() => {
@@ -381,68 +384,94 @@
 	<AccordionContent>
 		<div class="dt-todo-task-container">
 			{#each todo.tasks as task, i (task.id)}
-				<List class={`mb-2 task-list ${task.isDone && 'task-done'}`}>
-					<Item class="flex items-center">
-						<Graphic>
-							<Checkbox
-								on:click={(e) => toggleCompleted(e)}
-								value={task.id}
-								bind:checked={task.isDone}
-							/>
-						</Graphic>
-						<Text
-							on:click={() => {
-								viewMode = true;
-								addMode = false;
-								editMode = false;
-								todoDesc = task.desc;
-								openPopup = true;
-							}}
-							class="w-full">{task.desc}</Text
-						>
-						<Meta>
-							<Menu placement="end" gutter={5} size="xs" class="bg-transparent p-0 border-none">
-								<IconButton slot="control" class="material-icons">more_vert</IconButton>
+				<ContextMenu.Root>
+					<List class={`mb-2 task-list ${task.isDone && 'task-done'}`}>
+						<ContextMenu.Trigger>
+							<Item class="flex items-center">
+								<Graphic>
+									<Checkbox
+										on:click={(e) => toggleCompleted(e)}
+										value={task.id}
+										bind:checked={task.isDone}
+									/>
+								</Graphic>
+								<Text
+									on:click={() => {
+										viewMode = true;
+										addMode = false;
+										editMode = false;
+										todoDesc = task.desc;
+										openPopup = true;
+									}}
+									class="w-full">{task.desc}</Text
+								>
+								<Meta>
+									<Menu placement="end" gutter={5} size="xs" class="bg-transparent p-0 border-none">
+										<IconButton slot="control" class="material-icons">more_vert</IconButton>
 
-								<Menu.Item class="p-0">
-									<MaterialMenu static>
-										<List>
-											<Item
-												on:SMUI:action={() => {
-													viewMode = false;
-													addMode = false;
-													if (!editMode || editId !== task.id) {
-														editMode = true;
-														editId = task.id;
-														todoDesc = task.desc;
-													}
-													openPopup = true;
-												}}
-											>
-												<Text>Edit</Text>
-											</Item>
-											<Item
-												on:SMUI:action={() => {
-													editId = task.id;
-													confirmPopup(
-														'Remove Taks',
-														'Are you sure you want to delete?',
-														removeTask
-													);
-												}}
-											>
-												<Text>Delete</Text>
-											</Item>
-										</List>
-									</MaterialMenu>
-								</Menu.Item>
-							</Menu>
-						</Meta>
-					</Item>
-				</List>
+										<Menu.Item class="p-0">
+											<MaterialMenu static>
+												<List>
+													<Item
+														on:SMUI:action={() => {
+															viewMode = false;
+															addMode = false;
+															if (!editMode || editId !== task.id) {
+																editMode = true;
+																editId = task.id;
+																todoDesc = task.desc;
+																remSchedule = task.remSchedule;
+																isRemNotified = task.isRemNotified;
+															}
+															openPopup = true;
+														}}
+													>
+														<Text>Edit</Text>
+													</Item>
+													<Item
+														on:SMUI:action={() => {
+															editId = task.id;
+															confirmPopup(
+																'Remove Note',
+																'Are you sure you want to delete?',
+																removeTask
+															);
+														}}
+													>
+														<Text>Delete</Text>
+													</Item>
+												</List>
+											</MaterialMenu>
+										</Menu.Item>
+									</Menu>
+								</Meta>
+							</Item>
+						</ContextMenu.Trigger>
+						<ContextMenu.Content>
+							<ContextMenu.Item
+								on:click={() => {
+									viewMode = false;
+									addMode = false;
+									if (!editMode || editId !== task.id) {
+										editMode = true;
+										editId = task.id;
+										todoDesc = task.desc;
+									}
+									openPopup = true;
+								}}>Edit</ContextMenu.Item
+							>
+							<ContextMenu.Item
+								on:click={() => {
+									editId = task.id;
+									confirmPopup('Remove Note', 'Are you sure you want to delete?', removeTask);
+								}}>Delete</ContextMenu.Item
+							>
+						</ContextMenu.Content>
+					</List>
+				</ContextMenu.Root>
 			{/each}
 		</div>
-		<div class="flex justify-center">
+		<div class="flex justify-end px-7">
 			<MaterialButton
 				color="primary"
 				variant="unelevated"
@@ -453,9 +482,11 @@
 					editMode = false;
 					viewMode = false;
 					openPopup = true;
+					remSchedule = null;
+					isRemNotified = false;
 				}}
 			>
-				<Icon class="material-icons">add</Icon> Add
+				<Icon class="material-icons">add</Icon> Add Note
 			</MaterialButton>
 		</div>
 
@@ -480,40 +511,76 @@
 					{:else}
 						{formatDateReadable(todo.dateIso)}
 					{/if}
-					{#if !viewMode && ((editId && editMode) || addMode)}	
-					<MaterialButton
-						on:click={() => {
-							new AirDatepicker(`#todo-${todo._id}-popup-title`, {
-								locale: AirDatelocaleEn,
-								buttons: [
-									{
-										content(dp) {
-											return 'Update Date';
-										},
-										onClick(dp) {
-											//@ts-ignore
-											const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
-											//@ts-ignore
-											
-											if (editId && editMode) {
-												isTaskDateEditChanged = true;
-												taskChangeEditDate = formatDateRegular(dpDate);
-											} else {
-												isTaskDateAddChanged = true;
-												taskChangeAddDate = formatDateRegular(dpDate);
+					{#if !viewMode && ((editId && editMode) || addMode)}
+						<MaterialButton
+							on:click={() => {
+								if (!isTaskDateEditCalnderOpen) {
+									new AirDatepicker(`#todo-${todo._id}-popup-calendar`, {
+										locale: AirDatelocaleEn,
+										buttons: [
+											{
+												content(dp) {
+													return 'Update Date';
+												},
+												className: 'btn btn-accent',
+												onClick(dp) {
+													//@ts-ignore
+													const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
+													//@ts-ignore
+
+													if (editId && editMode) {
+														isTaskDateEditChanged = true;
+														taskChangeEditDate = formatDateRegular(dpDate);
+													} else {
+														isTaskDateAddChanged = true;
+														taskChangeAddDate = formatDateRegular(dpDate);
+													}
+													// changeDate(DateInputValue);
+													dp.destroy();
+													isTaskDateEditCalnderOpen = false;
+												}
 											}
-											// changeDate(DateInputValue);
-											dp.destroy();
-										}
-									}
-								]
-							});
-						}}
-					>
-						<Icon class="material-icons">edit</Icon>
-					</MaterialButton>
+										]
+									});
+									isTaskDateEditCalnderOpen = true;
+								}
+							}}
+						>
+							<Icon class="material-icons">edit</Icon>
+						</MaterialButton>
 					{/if}
 				</Title>
+				{#if (addMode || (editId && editMode)) && (!remSchedule || isRemNotified)}
+					<MaterialButton
+						on:click={() => {
+							if (!isTaskReminderTimerOpen) {
+								new AirDatepicker(`#todo-${todo._id}-popup-timer`, {
+									locale: AirDatelocaleEn,
+									timepicker: true,
+									onlyTimepicker: true,
+									buttons: [
+										{
+											content(dp) {
+												return 'Set Reminder Time';
+											},
+											className: 'btn btn-accent',
+											onClick(dp) {
+												// console.log(dp);
+
+												// changeDate(DateInputValue);
+												dp.destroy();
+												isTaskReminderTimerOpen = false;
+											}
+										}
+									]
+								});
+								isTaskReminderTimerOpen = true;
+							}
+						}}
+					>
+						<Icon class="material-icons">notifications</Icon>Set Reminder
+					</MaterialButton>
+				{/if}
 				{#if !viewMode}
 					<Actions>
 						<MaterialButton
@@ -526,6 +593,11 @@
 					</Actions>
 				{/if}
 			</div>
+			<div class="flex">
+				<div id={`todo-${todo._id}-popup-calendar`} class="w-6/12" />
+				<div id={`todo-${todo._id}-popup-timer`} class="w-6/12" />
+			</div>
+
 			<div>
 				<DialogContent id={`todo-${todo._id}-popup-content`}>
 					<Textfield

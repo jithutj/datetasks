@@ -67,29 +67,29 @@ label {
 .blinking-border {
 	border: 2px solid transparent; /* Set your desired border style and width */
 	animation: blink 6s linear;
-    animation-iteration-count: 1;
+	animation-iteration-count: 1;
 }
 
 .task-menu-action {
-    position: relative;
-    display: inline-block;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
+	position: relative;
+	display: inline-block;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
 
-  /* Styles for the individual dots */
-  .dot {
-    pointer-events: none;
-    width: 5px;
-    height: 5px;
-    background-color: #333;
-    border-radius: 50%;
-    display: block;
-    margin: 2px 0;
-  }
+/* Styles for the individual dots */
+.dot {
+	pointer-events: none;
+	width: 5px;
+	height: 5px;
+	background-color: #333;
+	border-radius: 50%;
+	display: block;
+	margin: 2px 0;
+}
 
 .dt-todo-task-container .collapse-plus > .collapse-title:after {
 	top: 1.6rem;
@@ -109,7 +109,8 @@ label {
 	border-right: 0;
 }
 
-.svelteui-Menu-body, .svelteui-Menu-body:hover {
+.svelteui-Menu-body,
+.svelteui-Menu-body:hover {
 	background: none !important;
 	padding: 0 !important;
 	border: none !important;
@@ -122,4 +123,13 @@ label {
 
 .justify-right-forced {
 	justify-content: right !important;
+}
+
+.mdc-deprecated-list-item__text {
+	white-space: normal;
+	-webkit-line-clamp: 2;
+	line-height: 1.5em;
+	max-height: 3em;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
 }
