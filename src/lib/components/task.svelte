@@ -37,7 +37,11 @@
 	// let textElem: { [key: number]: HTMLTextAreaElement } = {};
 	let todoClone: TODO | null = todo;
 	let triggerSync = false;
-	let todoDesc = '';
+
+	type TaskSaveData = Partial<Omit<Task, 'desc'>> & { desc: Task['desc'] }
+	const taskSaveDataDefault = {desc: '', remScheduleId: 0, remSchedule: null, isRemNotified: false}
+	let taskSaveData: TaskSaveData = taskSaveDataDefault;
+	
 	let isTaskDateEditChanged = false;
 	let taskDateChangeDestTodo: TODO | null = null;
 	let taskChangeEditDate: Date | null = null;
@@ -63,7 +67,7 @@
 				}
 
 				if (editMode) {
-					todoDesc = '';
+					taskSaveData = taskSaveDataDefault;
 					editMode = false;
 					editId = 0;
 					isTaskDateEditChanged = false;
@@ -72,7 +76,7 @@
 					taskChangeEditDate = null;
 				}
 				if (addMode) {
-					todoDesc = '';
+					taskSaveData = taskSaveDataDefault;
 					todoClone = null;
 					taskChangeAddDate = null;
 					isTaskDateAddChanged = false;
@@ -91,8 +95,19 @@
 
 	$: triggerSync && persistState();
 
+	const scheduleNotification = async (isAdd : boolean = true, task?: Task) => {
+		console.log(taskSaveData.remSchedule);
+		if (taskSaveData.remSchedule && (isAdd || (task && task.remSchedule !== taskSaveData.remSchedule))) {
+			console.log('trigger notification');
+
+			/* taskSaveData.remSchedule = null;
+			taskSaveData.isRemNotified = false; */
+			return true;
+		}
+	}
+
 	const addTask = async () => {
-		if (!todoDesc) {
+		if (!taskSaveData.desc) {
 			addMode = false;
 			taskChangeAddDate = null;
 			isTaskDateAddChanged = false;
@@ -144,9 +159,11 @@
 					? tasks[0].id
 					: 0;
 
-			todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }];
+			await scheduleNotification();
+			await tick();
+			todoClone.tasks = [...tasks, { id: lastId + 1, isDone: false, ...taskSaveData  }];
 			triggerSync = true;
-			todoDesc = '';
+			taskSaveData = taskSaveDataDefault;
 		}
 	};
 
@@ -167,16 +184,18 @@
 			}
 		}
 		if (todoClone) {
-			//inline updation - @deprecated
+			//inline updation - @deprecated - won't be maintained
 			if (taskid) {
 				const index = todoClone.tasks.findIndex((task) => task.id === taskid);
 				todoClone.tasks[index].desc = desc;
 			} else {
 				const index = todoClone.tasks.findIndex((task) => task.id === editId);
-				todoClone.tasks[index].desc = todoDesc;
+				await scheduleNotification(false, todoClone.tasks[index]);
+				await tick();
+				todoClone.tasks[index] = Object.assign(todoClone.tasks[index], taskSaveData)
 			}
 			triggerSync = true;
-			todoDesc = '';
+			taskSaveData = taskSaveDataDefault;
 		}
 	};
 
@@ -359,7 +378,7 @@
 	};
 </script>
 
-<Panel bind:open={isOpen}>
+<Panel bind:open={isOpen} class="!rounded-sm">
 	<Header>
 		<div class="flex items-center px-5">
 			<div class="w-11/12">
@@ -381,7 +400,7 @@
 			</div>
 		</div>
 	</Header>
-	<AccordionContent>
+	<AccordionContent class="!px-0">
 		<div class="dt-todo-task-container">
 			{#each todo.tasks as task, i (task.id)}
 				<ContextMenu.Root>
@@ -400,14 +419,17 @@
 										viewMode = true;
 										addMode = false;
 										editMode = false;
-										todoDesc = task.desc;
+										taskSaveData = task;
 										openPopup = true;
+										console.log(taskSaveData)
 									}}
 									class="w-full">{task.desc}</Text
 								>
 								<Meta>
 									<Menu placement="end" gutter={5} size="xs" class="bg-transparent p-0 border-none">
-										<IconButton slot="control" class="material-icons">more_vert</IconButton>
+										<IconButton slot="control" class="material-icons pr-0 text-right"
+											>more_vert</IconButton
+										>
 
 										<Menu.Item class="p-0">
 											<MaterialMenu static>
@@ -419,7 +441,7 @@
 															if (!editMode || editId !== task.id) {
 																editMode = true;
 																editId = task.id;
-																todoDesc = task.desc;
+																taskSaveData = task;
 																remSchedule = task.remSchedule;
 																isRemNotified = task.isRemNotified;
 															}
@@ -455,7 +477,7 @@
 									if (!editMode || editId !== task.id) {
 										editMode = true;
 										editId = task.id;
-										todoDesc = task.desc;
+										taskSaveData = task;
 									}
 									openPopup = true;
 								}}>Edit</ContextMenu.Item
@@ -476,7 +498,7 @@
 				color="primary"
 				variant="unelevated"
 				on:click={() => {
-					todoDesc = '';
+					taskSaveData = taskSaveDataDefault;
 					addMode = true;
 					editId = 0;
 					editMode = false;
@@ -502,8 +524,8 @@
 					<IconButton class="material-icons" on:click={() => (openPopup = false)}>close</IconButton>
 				</Actions>
 			</div>
-			<div class="flex items-center justify-between">
-				<Title id={`todo-${todo._id}-popup-title`}>
+			<div class="flex items-center justify-between px-3">
+				<Title id={`todo-${todo._id}-popup-title`} class="!px-0">
 					{#if isTaskDateEditChanged && taskChangeEditDate}
 						{formatDateReadable(taskChangeEditDate.toISOString())}
 					{:else if isTaskDateAddChanged && taskChangeAddDate}
@@ -526,7 +548,6 @@
 												onClick(dp) {
 													//@ts-ignore
 													const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
-													//@ts-ignore
 
 													if (editId && editMode) {
 														isTaskDateEditChanged = true;
@@ -552,6 +573,7 @@
 				</Title>
 				{#if (addMode || (editId && editMode)) && (!remSchedule || isRemNotified)}
 					<MaterialButton
+						class="!px-o"
 						on:click={() => {
 							if (!isTaskReminderTimerOpen) {
 								new AirDatepicker(`#todo-${todo._id}-popup-timer`, {
@@ -566,8 +588,11 @@
 											className: 'btn btn-accent',
 											onClick(dp) {
 												// console.log(dp);
-
-												// changeDate(DateInputValue);
+												//@ts-ignore
+												const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
+												taskSaveData.remSchedule = dpDate;
+												taskSaveData.isRemNotified = false;
+												
 												dp.destroy();
 												isTaskReminderTimerOpen = false;
 											}
@@ -581,6 +606,14 @@
 						<Icon class="material-icons">notifications</Icon>Set Reminder
 					</MaterialButton>
 				{/if}
+			</div>
+			<div class="flex pl-3 mb-3">
+				<div id={`todo-${todo._id}-popup-calendar`} class="w-12/12" />
+			</div>
+			<div class="flex justify-end pr-3 mb-3">
+				<div id={`todo-${todo._id}-popup-timer`} class="w-12/12" />
+			</div>
+			<div class="flex justify-end px-2">
 				{#if !viewMode}
 					<Actions>
 						<MaterialButton
@@ -593,10 +626,6 @@
 					</Actions>
 				{/if}
 			</div>
-			<div class="flex">
-				<div id={`todo-${todo._id}-popup-calendar`} class="w-6/12" />
-				<div id={`todo-${todo._id}-popup-timer`} class="w-6/12" />
-			</div>
 
 			<div>
 				<DialogContent id={`todo-${todo._id}-popup-content`}>
@@ -604,7 +633,7 @@
 						style="width: 100%;height: 70vh"
 						helperLine$style="width: 100%;"
 						textarea
-						bind:value={todoDesc}
+						bind:value={taskSaveData.desc}
 						label="Description"
 						class={viewMode ? 'pointer-events-none' : ''}
 					/>

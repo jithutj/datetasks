@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'DateTask',
   webDir: 'build',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    url: 'http://192.168.0.106:5174',
+    cleartext: true
   },
   plugins: {
     LocalNotifications: {
