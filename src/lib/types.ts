@@ -9,6 +9,7 @@ export interface Task {
     id: number
     desc: string
     isDone: boolean
+    remScheduleId?: number
     remSchedule?: string | null
     isRemNotified?: boolean
 }

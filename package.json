@@ -12,7 +12,11 @@
 		"format": "prettier --plugin-search-dir . --write .",
 		"prepare": "npm run smui-theme-light && npm run smui-theme-dark",
 		"smui-theme-light": "smui-theme compile static/smui.css -i src/theme",
-		"smui-theme-dark": "smui-theme compile static/smui-dark.css -i src/theme/dark"
+		"smui-theme-dark": "smui-theme compile static/smui-dark.css -i src/theme/dark",
+		"start-avd": "bash start_avd.sh",
+		"cap-android-build-debug": "bash cap-android-build.sh",
+		"cap-android-install-debug": "npm run build && npx cap sync && cd android && ./gradlew installDebug",
+		"cap-android-live-reload": "npx cap copy && npx cap sync && (npm run dev -- --host) & npm run start-avd && npx cap run android  --external -livereload"
 	},
 	"devDependencies": {
 		"@mdi/js": "^7.3.67",

@@ -60,7 +60,7 @@
 		</div>
 	{/if}
 	<AutoAdjust {bottomAppBar}>
-		<div class="main-container container py-1 m-auto" data-theme="cupcake">
+		<div class="main-container py-1 m-auto" data-theme="cupcake">
 			<div class="main-inner-container flexor">
 				<div class="flexor-content px-2 py-2">
 					<slot />
