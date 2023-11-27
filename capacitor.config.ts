@@ -4,11 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.datetasks.app',
   appName: 'DateTask',
   webDir: 'build',
-  server: {
+  /* server: {
     androidScheme: 'https',
-    url: 'http://192.168.0.106:5174',
-    cleartext: true
-  },
+    url: '127.0.0.1:5175',
+    cleartext: true 
+  }, */
   plugins: {
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",

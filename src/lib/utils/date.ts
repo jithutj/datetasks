@@ -69,3 +69,47 @@ export function formatDateRegular(dateInput: String) {
 
 	return new Date(formattedDate);
 }
+
+export function combineDateAndTime(d: string, e: string) {
+	// Create a Date object for the given time string
+	const dateE = new Date(e);
+
+	// Extract the time portion from the Date object
+	const timeE = dateE.toTimeString().split(" ")[0];
+
+	// Combine the date and time
+	const combinedDateTime = `${d} ${timeE}`;
+
+	return combinedDateTime;
+}
+
+export function isGreaterThanOrEqToday(givenDateString: string) {
+	const givenDate = new Date(givenDateString);
+
+	// Get the current date
+	const currentDate = new Date();
+
+	// Set the time components of the current date to 00:00:00 to compare only the dates
+	currentDate.setHours(0, 0, 0, 0);
+
+	if (givenDate >= currentDate) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+export function convertToReadableDateTime(input: string) {
+	const inputDate = new Date(input);
+
+	const options = {
+		weekday: 'short' as const,
+		month: 'short' as const,
+		day: 'numeric' as const,
+		hour: 'numeric' as const,
+		minute: 'numeric' as const,
+		hour12: true
+	};
+
+	return inputDate.toLocaleString('en-US', options);
+} 

@@ -14,8 +14,10 @@
 	import AirDatepicker from 'air-datepicker';
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
 	import 'air-datepicker/air-datepicker.css';
+	import { NotificationService } from '$lib/utils/NotificationService';
 
 	const db = Database.getInstance().getDB();
+	const notificationService = NotificationService.getInstance();
 
 	let todos: TODO[] = [];
 	let todoPrevPaginationStartid: string | null = null;
@@ -58,8 +60,6 @@
 
 	const addDate = async ($dateTarget: any) => {
 		try {
-			console.log(DateInputValue);
-			console.log(formatDateOnly(DateInputValue));
 			const isDateExist = todos.some((item) => item._id === formatDateOnly(DateInputValue));
 			if (!isDateExist) {
 				const { docs: isDateExistInDb } = await db.find({
@@ -68,17 +68,17 @@
 				});
 				await tick();
 				if (isDateExistInDb.length) {
-					toast.push('Date already exist', {
-						classes: ['warn']
-					});
-					throw error(403, 'Date already exists');
+					//@ts-ignore
+					todos = _.orderBy([...todos, isDateExistInDb[0]], ['_id']);
+				} else {
+					const todoUpdatedWithRev = await createTodo(false, DateInputValue);
+					await tick();
+					todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
 				}
-				const todoUpdatedWithRev = await createTodo(false, DateInputValue);
-				await tick();
-				todos = _.orderBy([...todos, ...todoUpdatedWithRev], ['_id']);
+				
 				$dateTarget.hide();
 			} else {
-				toast.push('Date already exist', {
+				toast.push('Date already added, click on "Add Note" inside the date', {
 					classes: ['warn']
 				});
 			}
@@ -127,14 +127,31 @@
 			console.log(err);
 		}
 
+		setTimeout(() => {
+			notificationService.checkOrRequestPermission();
+		}, 3000);
+
+		notificationService.createChannel({
+			id: 'datetasks-reminder',
+			name: 'Datetasks reminder notifications',
+			description: 'Reminder notification channel',
+			importance: 5, // High importance
+			sound: 'smart_alarm.mp3',
+			visibility: 1, // Heads-up notification
+			vibration: true,
+			lights: true
+      	})
+
 		new AirDatepicker('#add-todo-trigger', {
 			isMobile: true,
 			locale: AirDatelocaleEn,
 			buttons: [
 				{
 					content(dp) {
-						return 'Add';
+						return 'ADD DATE';
 					},
+					tagName: 'button',
+					className: '!bg-blue-700 !text-white',
 					onClick(dp) {
 						//@ts-ignore
 						const dpDate = dp.lastSelectedDate ?? todayDate;

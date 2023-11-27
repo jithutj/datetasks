@@ -16,7 +16,7 @@
 		"start-avd": "bash start_avd.sh",
 		"cap-android-build-debug": "bash cap-android-build.sh",
 		"cap-android-install-debug": "npm run build && npx cap sync && cd android && ./gradlew installDebug",
-		"cap-android-live-reload": "npx cap copy && npx cap sync && (npm run dev -- --host) & npm run start-avd && npx cap run android  --external -livereload"
+		"cap-android-live-reload": "npx cap copy && npx cap sync && (npm run dev --port 5173) & npm run start-avd && npx cap run android  --external -livereload --host=localhost --port 5174"
 	},
 	"devDependencies": {
 		"@mdi/js": "^7.3.67",
@@ -59,6 +59,7 @@
 		"svelte": "^4.0.5",
 		"svelte-calendar": "^3.1.6",
 		"svelte-check": "^3.4.3",
+		"svelte-time-picker": "^2.0.0",
 		"tailwindcss": "^3.3.2",
 		"tslib": "^2.4.1",
 		"typescript": "^5.0.0",
@@ -70,6 +71,7 @@
 		"@capacitor/android": "^5.5.1",
 		"@capacitor/cli": "^5.5.1",
 		"@capacitor/core": "^5.5.1",
+		"@capacitor/dialog": "^5.0.6",
 		"@capacitor/local-notifications": "^5.0.6",
 		"@svelteuidev/composables": "^0.15.3",
 		"@svelteuidev/core": "^0.15.3",

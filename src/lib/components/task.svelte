@@ -2,7 +2,7 @@
 	import { Database } from '$lib';
 	import type { TODO, Task } from '$lib/types';
 	import _, { add } from 'lodash';
-	import { formatDateOnly, formatDateReadable, formatDateRegular } from '$lib/utils/date';
+	import { combineDateAndTime, convertToReadableDateTime, formatDateOnly, formatDateReadable, formatDateRegular, isGreaterThanOrEqToday } from '$lib/utils/date';
 	import { Menu } from '@svelteuidev/core';
 	//@ts-ignore
 	import { Panel, Header, Content as AccordionContent } from '@smui-extra/accordion';
@@ -19,6 +19,13 @@
 	import { tick } from 'svelte';
 	import { error } from '@sveltejs/kit';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index';
+	import { NotificationService } from '$lib/utils/NotificationService';
+	import { ListenerEvents } from '$lib/utils/NotificationService';
+	import { Dialog as CapDialog } from '@capacitor/dialog';
+	import { getRandomNumberString } from '$lib/utils/common';
+	import type { LocalNotificationSchema } from '@capacitor/local-notifications';
+	import { TimePickerModal } from 'svelte-time-picker';
+	import { fade } from 'svelte/transition';
 
 	export let todos: TODO[];
 	export let todo: TODO;
@@ -39,7 +46,7 @@
 	let triggerSync = false;
 
 	type TaskSaveData = Partial<Omit<Task, 'desc'>> & { desc: Task['desc'] }
-	const taskSaveDataDefault = {desc: '', remScheduleId: 0, remSchedule: null, isRemNotified: false}
+	const taskSaveDataDefault = {desc: '', remScheduleId: getRandomNumberString(7), remSchedule: null, isRemNotified: false}
 	let taskSaveData: TaskSaveData = taskSaveDataDefault;
 	
 	let isTaskDateEditChanged = false;
@@ -48,10 +55,24 @@
 	let taskChangeAddDate: Date | null = null;
 	let isTaskDateAddChanged = false;
 	let isTaskDateEditCalnderOpen = false;
-	let remSchedule: Task['remSchedule'] = null;
-	let isRemNotified: Task['isRemNotified'] = false;
 
 	let isTaskReminderTimerOpen = false;
+	const timerOptions = {
+			/* Global colors */
+			bgColor: '#2b6cb0',
+			/* Components styles */
+			buttonClassName: 'timer-buttons-button',
+			buttonBarClassName: 'timer-buttons-bar',
+			timeClassName: 'timer-buttons-time',
+			clockClassName: 'timer-clock-container',
+			/* Options */
+			hasButtons: true,
+			zIndex: 200,
+			// minutesIncrement: 5
+		}
+
+	$: _selectedTimer = taskSaveData.remSchedule ? new Date(taskSaveData.remSchedule) : new Date();
+
 	const persistState = async () => {
 		try {
 			if (todoClone) {
@@ -61,23 +82,24 @@
 					todo = todoClone;
 				} else if (isTaskDateEditChanged) {
 					const t_index = todos.findIndex((item) => item._id === todoClone?._id);
-					const tk_index = todos[t_index].tasks.findIndex((task) => task.id === editId);
 					const index = todoClone.tasks.findIndex((task) => task.id === editId);
-					todos[t_index].tasks[tk_index].desc = todoClone.tasks[index].desc;
+					todos[t_index].tasks[index] = todoClone.tasks[index];
+				} else if (isTaskDateAddChanged) {
+					const t_index = todos.findIndex((item) => item._id === todoClone?._id);
+					const index = todoClone.tasks.length - 1;
+					todos[t_index].tasks[index] = todoClone.tasks[index];
 				}
-
+				
 				if (editMode) {
-					taskSaveData = taskSaveDataDefault;
+					taskSaveData = { ...taskSaveDataDefault };
 					editMode = false;
 					editId = 0;
 					isTaskDateEditChanged = false;
-					todoClone = null;
 					taskDateChangeDestTodo = null;
 					taskChangeEditDate = null;
 				}
 				if (addMode) {
-					taskSaveData = taskSaveDataDefault;
-					todoClone = null;
+					taskSaveData = { ...taskSaveDataDefault };
 					taskChangeAddDate = null;
 					isTaskDateAddChanged = false;
 					addMode = false;
@@ -96,12 +118,34 @@
 	$: triggerSync && persistState();
 
 	const scheduleNotification = async (isAdd : boolean = true, task?: Task) => {
-		console.log(taskSaveData.remSchedule);
-		if (taskSaveData.remSchedule && (isAdd || (task && task.remSchedule !== taskSaveData.remSchedule))) {
-			console.log('trigger notification');
+		if (taskSaveData.remSchedule && (isAdd || (task && ('undefined' == task.remSchedule || task.remSchedule !== taskSaveData.remSchedule)))) {
 
-			/* taskSaveData.remSchedule = null;
-			taskSaveData.isRemNotified = false; */
+			const notificationService = NotificationService.getInstance();
+			notificationService.checkOrRequestPermission();
+
+			if (taskSaveData.remScheduleId) {
+
+				notificationService.scheduleNotification([
+					{
+						id: taskSaveData.remScheduleId,
+						title: taskSaveData.desc.substring(0, 15),
+						body: taskSaveData.desc,
+						schedule: { at: new Date(taskSaveData.remSchedule), allowWhileIdle: true },
+						extra: { type: 'reminder' },
+						channelId: 'datetasks-reminder'
+					}
+				])
+
+				notificationService.addListeners<LocalNotificationSchema>(ListenerEvents.localNotificationReceived, async (notification) => {
+					if (notification.extra.type === 'reminder') {
+						await CapDialog.alert({
+							title: taskSaveData.desc.substring(0, 15),
+							message: taskSaveData.desc.substring(0.100),
+						});
+					}
+				});
+			}
+
 			return true;
 		}
 	}
@@ -159,11 +203,15 @@
 					? tasks[0].id
 					: 0;
 
+			if (taskSaveData.remSchedule) {
+				const schedule = combineDateAndTime(todoClone._id, taskSaveData.remSchedule);
+				taskSaveData.remSchedule = schedule;
+			}
 			await scheduleNotification();
 			await tick();
 			todoClone.tasks = [...tasks, { id: lastId + 1, isDone: false, ...taskSaveData  }];
 			triggerSync = true;
-			taskSaveData = taskSaveDataDefault;
+			taskSaveData = { ...taskSaveDataDefault };
 		}
 	};
 
@@ -190,12 +238,16 @@
 				todoClone.tasks[index].desc = desc;
 			} else {
 				const index = todoClone.tasks.findIndex((task) => task.id === editId);
+				if (taskSaveData.remSchedule) {
+					const schedule = combineDateAndTime(todoClone._id, taskSaveData.remSchedule);
+					taskSaveData.remSchedule = schedule;
+				}
 				await scheduleNotification(false, todoClone.tasks[index]);
 				await tick();
 				todoClone.tasks[index] = Object.assign(todoClone.tasks[index], taskSaveData)
 			}
 			triggerSync = true;
-			taskSaveData = taskSaveDataDefault;
+			taskSaveData = { ...taskSaveDataDefault };
 		}
 	};
 
@@ -380,13 +432,13 @@
 
 <Panel bind:open={isOpen} class="!rounded-sm">
 	<Header>
-		<div class="flex items-center px-5">
+		<div class="flex items-center">
 			<div class="w-11/12">
 				{formatDateReadable(todo.dateIso)}
 			</div>
 			<div class="w-1/12 flex justify-end">
 				<IconButton
-					class="material-icons"
+					class="material-icons !px-0 flex justify-end"
 					on:click={() => {
 						confirmPopup(
 							'Remove Date',
@@ -419,9 +471,8 @@
 										viewMode = true;
 										addMode = false;
 										editMode = false;
-										taskSaveData = task;
+										taskSaveData = { ...task };
 										openPopup = true;
-										console.log(taskSaveData)
 									}}
 									class="w-full">{task.desc}</Text
 								>
@@ -441,9 +492,7 @@
 															if (!editMode || editId !== task.id) {
 																editMode = true;
 																editId = task.id;
-																taskSaveData = task;
-																remSchedule = task.remSchedule;
-																isRemNotified = task.isRemNotified;
+																taskSaveData = { ...task };
 															}
 															openPopup = true;
 														}}
@@ -477,7 +526,7 @@
 									if (!editMode || editId !== task.id) {
 										editMode = true;
 										editId = task.id;
-										taskSaveData = task;
+										taskSaveData = { ...task };
 									}
 									openPopup = true;
 								}}>Edit</ContextMenu.Item
@@ -498,14 +547,13 @@
 				color="primary"
 				variant="unelevated"
 				on:click={() => {
-					taskSaveData = taskSaveDataDefault;
+					taskSaveData = { ...taskSaveDataDefault };
 					addMode = true;
 					editId = 0;
 					editMode = false;
 					viewMode = false;
 					openPopup = true;
-					remSchedule = null;
-					isRemNotified = false;
+					
 				}}
 			>
 				<Icon class="material-icons">add</Icon> Add Note
@@ -524,7 +572,8 @@
 					<IconButton class="material-icons" on:click={() => (openPopup = false)}>close</IconButton>
 				</Actions>
 			</div>
-			<div class="flex items-center justify-between px-3">
+			<div class="flex flex-col items-center px-3">
+				<div class="flex w-full">
 				<Title id={`todo-${todo._id}-popup-title`} class="!px-0">
 					{#if isTaskDateEditChanged && taskChangeEditDate}
 						{formatDateReadable(taskChangeEditDate.toISOString())}
@@ -541,10 +590,26 @@
 										locale: AirDatelocaleEn,
 										buttons: [
 											{
-												content(dp) {
-													return 'Update Date';
+												content() {
+													return 'Close';
 												},
-												className: 'btn btn-accent',
+												tagName: 'button',
+												className: '!bg-slate-700 !text-white !mr-2',
+												onClick(dp) {
+													dp.destroy();
+													isTaskDateAddChanged = false;
+													isTaskDateEditChanged = false;
+													isTaskDateEditCalnderOpen = false;
+													taskChangeEditDate = null;
+													taskChangeAddDate = null;
+												}
+											},
+											{
+												content(dp) {
+													return 'Update';
+												},
+												tagName: 'button',
+												className: '!bg-blue-700 !text-white',
 												onClick(dp) {
 													//@ts-ignore
 													const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
@@ -571,66 +636,75 @@
 						</MaterialButton>
 					{/if}
 				</Title>
-				{#if (addMode || (editId && editMode)) && (!remSchedule || isRemNotified)}
+				</div>
+				<div class="flex pl-3 mb-3 popup-calendar" class:!hidden={!isTaskDateEditCalnderOpen}>
+					<div id={`todo-${todo._id}-popup-calendar`} class="w-12/12" />
+				</div>
+				<div class="flex w-full justify-end">
+				{#if (addMode || (editId && editMode))}
 					<MaterialButton
-						class="!px-o"
-						on:click={() => {
-							if (!isTaskReminderTimerOpen) {
-								new AirDatepicker(`#todo-${todo._id}-popup-timer`, {
-									locale: AirDatelocaleEn,
-									timepicker: true,
-									onlyTimepicker: true,
-									buttons: [
-										{
-											content(dp) {
-												return 'Set Reminder Time';
-											},
-											className: 'btn btn-accent',
-											onClick(dp) {
-												// console.log(dp);
-												//@ts-ignore
-												const dpDate = dp.lastSelectedDate ?? new Date(todo.dateIso);
-												taskSaveData.remSchedule = dpDate;
-												taskSaveData.isRemNotified = false;
-												
-												dp.destroy();
-												isTaskReminderTimerOpen = false;
-											}
-										}
-									]
-								});
-								isTaskReminderTimerOpen = true;
-							}
-						}}
+						class="!px-0"
+						on:click={() => isTaskReminderTimerOpen = !isTaskReminderTimerOpen}
 					>
-						<Icon class="material-icons">notifications</Icon>Set Reminder
+						<Icon class="material-icons">notifications</Icon>{ `${taskSaveData.remSchedule ? 'Update' : 'Set'} Reminder` }
 					</MaterialButton>
 				{/if}
+				</div>
 			</div>
-			<div class="flex pl-3 mb-3">
-				<div id={`todo-${todo._id}-popup-calendar`} class="w-12/12" />
-			</div>
-			<div class="flex justify-end pr-3 mb-3">
-				<div id={`todo-${todo._id}-popup-timer`} class="w-12/12" />
-			</div>
-			<div class="flex justify-end px-2">
-				{#if !viewMode}
-					<Actions>
-						<MaterialButton
-							variant="raised"
-							action="accept"
-							on:click={() => (editMode ? updateTask() : addTask())}
-						>
-							<Label><Icon class="material-icons">save</Icon> Save</Label>
-						</MaterialButton>
-					</Actions>
+			<div class="flex justify-end px-3 items-center">
+				{#if taskSaveData.remSchedule && isGreaterThanOrEqToday(taskSaveData.remSchedule)}
+				<span class="flex items-center">
+					<Icon class="material-icons">notifications</Icon> Sheduled at: &nbsp <b>
+						{#if isTaskDateEditChanged && taskChangeEditDate}
+							{convertToReadableDateTime(combineDateAndTime(formatDateOnly(taskChangeEditDate), taskSaveData.remSchedule))}
+						{:else if isTaskDateAddChanged && taskChangeAddDate}
+							{convertToReadableDateTime(combineDateAndTime(formatDateOnly(taskChangeAddDate), taskSaveData.remSchedule))}
+						{:else}
+							{convertToReadableDateTime(combineDateAndTime(todo._id, taskSaveData.remSchedule))}
+						{/if}
+					</b></span>
+				{:else}
+				<span>No Reminder Set</span>	
 				{/if}
 			</div>
+			{#if isTaskReminderTimerOpen}
+			<div class="popup-timer" transition:fade={ {duration: 300} }>
+				<TimePickerModal date={_selectedTimer} options={timerOptions}
+					on:cancel={(e) => {
+						isTaskReminderTimerOpen = false
+					}}
+					on:ok={(e) => {
+						taskSaveData.remScheduleId = getRandomNumberString(7);
+						taskSaveData.remSchedule = e.detail;
+						taskSaveData.isRemNotified = false;
+						isTaskReminderTimerOpen = false;
+					}}
+					on:close={(e) => isTaskReminderTimerOpen = false}
+				/>
+			</div>
+			{/if}
 
 			<div>
-				<DialogContent id={`todo-${todo._id}-popup-content`}>
+				<DialogContent id={`todo-${todo._id}-popup-content`} class="!px-3">
+					<div class="flex items-center justify-between mb-3">
+					<MaterialButton class="flex items-center !text-red-600 px-0" on:click={ () => taskSaveData.desc = '' }>
+						<Icon class="material-icons">delete</Icon>
+						Clear
+					</MaterialButton>
+						{#if !viewMode}
+						<Actions class="px-0">
+							<MaterialButton
+								variant="raised"
+								action="accept"
+								on:click={() => (editMode ? updateTask() : addTask())}
+							>
+								<Label><Icon class="material-icons">save</Icon> Save</Label>
+							</MaterialButton>
+						</Actions>
+					{/if}
+					</div>
 					<Textfield
-						style="width: 100%;height: 70vh"
+						style="width: 100%;height: 40vh"
 						helperLine$style="width: 100%;"
 						textarea
 						bind:value={taskSaveData.desc}
@@ -644,6 +718,7 @@
 			bind:open={openConfirmPopup}
 			aria-labelledby="confirm-popup-title"
 			aria-describedby="confirm-popup-content"
+			class="mdc-dialog-position-bottom"
 		>
 			<!-- Title cannot contain leading whitespace due to mdc-typography-baseline-top() -->
 			<Title id="confirm-popup-title">{confirmPopupTitle}</Title>
@@ -652,8 +727,8 @@
 				<MaterialButton on:click={() => (openConfirmPopup = false)}>
 					<Label>No</Label>
 				</MaterialButton>
-				<MaterialButton on:click={() => confirmPopupCallback()}>
-					<Label>Yes</Label>
+				<MaterialButton class="!bg-red-700 !text-white" on:click={() => confirmPopupCallback()}>
+					<Label>Delete</Label>
 				</MaterialButton>
 			</Actions>
 		</Dialog>
