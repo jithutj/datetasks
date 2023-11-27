@@ -23,7 +23,7 @@
 	import { ListenerEvents } from '$lib/utils/NotificationService';
 	import { Dialog as CapDialog } from '@capacitor/dialog';
 	import { getRandomNumberString } from '$lib/utils/common';
-	import type { LocalNotificationSchema } from '@capacitor/local-notifications';
+	import type { ActionPerformed, LocalNotificationSchema } from '@capacitor/local-notifications';
 	import { TimePickerModal } from 'svelte-time-picker';
 	import { fade } from 'svelte/transition';
 
@@ -54,6 +54,13 @@
 	let taskChangeEditDate: Date | null = null;
 	let taskChangeAddDate: Date | null = null;
 	let isTaskDateAddChanged = false;
+	$: if (openPopup) {
+		isTaskDateEditChanged = false;
+		taskChangeEditDate = null;
+		taskChangeAddDate = null;
+		isTaskDateAddChanged = false;
+	}
+	
 	let isTaskDateEditCalnderOpen = false;
 
 	let isTaskReminderTimerOpen = false;
@@ -117,30 +124,54 @@
 
 	$: triggerSync && persistState();
 
-	const scheduleNotification = async (isAdd : boolean = true, task?: Task) => {
-		if (taskSaveData.remSchedule && (isAdd || (task && ('undefined' == task.remSchedule || task.remSchedule !== taskSaveData.remSchedule)))) {
+	const getTaskById = async (todoId: string, taskId: number) => {
+		try {
+			const result = await db.find({
+			selector: {
+				_id: { $eq: todoId },
+			},
+			fields: ['tasks'],
+			limit: 1
+			});
+			await tick();
+			if (result.docs.length > 0) {
+				//@ts-ignore
+				return result.docs[0].tasks.find(task => task.id === taskId);
+			} else {
+				// Task not found
+				return null;
+			}
+		} catch (error) {
+			return null;
+		}
+	}
 
+	const scheduleNotification = async (isAdd : boolean = true, task: Task) => {
+		if (taskSaveData.remSchedule && (isAdd || (task && ('undefined' == task.remSchedule || task.remSchedule !== taskSaveData.remSchedule)))) {
 			const notificationService = NotificationService.getInstance();
 			notificationService.checkOrRequestPermission();
 
-			if (taskSaveData.remScheduleId) {
+			if (taskSaveData.remScheduleId && task && todoClone) {
 
 				notificationService.scheduleNotification([
 					{
 						id: taskSaveData.remScheduleId,
 						title: taskSaveData.desc.substring(0, 15),
-						body: taskSaveData.desc,
+						body: taskSaveData.desc.substring(0, 150),
 						schedule: { at: new Date(taskSaveData.remSchedule), allowWhileIdle: true },
-						extra: { type: 'reminder' },
-						channelId: 'datetasks-reminder'
+						extra: { type: 'reminder', todoId: todoClone._id, taskId: task.id  },
+						channelId: 'datetasks-reminder',
+						actionTypeId: 'reminder'
 					}
 				])
 
-				notificationService.addListeners<LocalNotificationSchema>(ListenerEvents.localNotificationReceived, async (notification) => {
-					if (notification.extra.type === 'reminder') {
+				notificationService.addListeners<ActionPerformed>(ListenerEvents.localNotificationActionPerformed, async (notificationAction) => {
+					if (notificationAction.actionId === 'view' && notificationAction.notification.extra.type === 'reminder') {
+						const data = await getTaskById(notificationAction.notification.extra.todoId, notificationAction.notification.extra.taskId);
+						await tick();
 						await CapDialog.alert({
-							title: taskSaveData.desc.substring(0, 15),
-							message: taskSaveData.desc.substring(0.100),
+							title: data.desc.substring(0, 15),
+							message: data.desc
 						});
 					}
 				});
@@ -207,9 +238,10 @@
 				const schedule = combineDateAndTime(todoClone._id, taskSaveData.remSchedule);
 				taskSaveData.remSchedule = schedule;
 			}
-			await scheduleNotification();
+			const saveTask = { id: lastId + 1, isDone: false, ...taskSaveData  };
+			todoClone.tasks = [...tasks, saveTask];
+			await scheduleNotification(true, saveTask);
 			await tick();
-			todoClone.tasks = [...tasks, { id: lastId + 1, isDone: false, ...taskSaveData  }];
 			triggerSync = true;
 			taskSaveData = { ...taskSaveDataDefault };
 		}
@@ -242,9 +274,10 @@
 					const schedule = combineDateAndTime(todoClone._id, taskSaveData.remSchedule);
 					taskSaveData.remSchedule = schedule;
 				}
+				
 				await scheduleNotification(false, todoClone.tasks[index]);
 				await tick();
-				todoClone.tasks[index] = Object.assign(todoClone.tasks[index], taskSaveData)
+				todoClone.tasks[index] = Object.assign(todoClone.tasks[index], taskSaveData);	
 			}
 			triggerSync = true;
 			taskSaveData = { ...taskSaveDataDefault };
@@ -686,23 +719,24 @@
 
 			<div>
 				<DialogContent id={`todo-${todo._id}-popup-content`} class="!px-3">
-					<div class="flex items-center justify-between mb-3">
-					<MaterialButton class="flex items-center !text-red-600 px-0" on:click={ () => taskSaveData.desc = '' }>
-						<Icon class="material-icons">delete</Icon>
-						Clear
-					</MaterialButton>
 						{#if !viewMode}
-						<Actions class="px-0">
-							<MaterialButton
-								variant="raised"
-								action="accept"
-								on:click={() => (editMode ? updateTask() : addTask())}
-							>
-								<Label><Icon class="material-icons">save</Icon> Save</Label>
+						<div class="flex items-center justify-between mb-3">
+							<MaterialButton class=" flex items-center !text-red-600 px-0" on:click={ () => taskSaveData.desc = '' }>
+								<Icon class="material-icons">delete</Icon>
+								Clear
 							</MaterialButton>
-						</Actions>
+							<Actions class="px-0">
+							
+								<MaterialButton
+									variant="raised"
+									action="accept"
+									on:click={() => (editMode ? updateTask() : addTask())}
+								>
+									<Label><Icon class="material-icons">save</Icon> Save</Label>
+								</MaterialButton>
+							</Actions>
+						</div>
 					{/if}
-					</div>
 					<Textfield
 						style="width: 100%;height: 40vh"
 						helperLine$style="width: 100%;"

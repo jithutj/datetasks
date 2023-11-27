@@ -35,14 +35,12 @@
 		};
 		try {
 			const result = await db.put(todoDefault);
-
 			await tick();
-
 			if (shouldIndex) {
+				console.log('index triggered')
 				await db.createIndex({
 					index: {
-						fields: ['_id'],
-						name: 'idindex'
+						fields: ['_id']
 					}
 				});
 			}
@@ -130,6 +128,17 @@
 		setTimeout(() => {
 			notificationService.checkOrRequestPermission();
 		}, 3000);
+
+		notificationService.registerActionTypes([{
+				id: 'reminder',
+				actions: [
+					{
+						id: 'view',
+						title: "View"
+					}
+				]
+			}]
+		)
 
 		notificationService.createChannel({
 			id: 'datetasks-reminder',

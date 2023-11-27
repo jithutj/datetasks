@@ -126,12 +126,12 @@ label {
 }
 
 .mdc-deprecated-list-item__text {
-	white-space: normal;
-	-webkit-line-clamp: 2;
-	line-height: 1.5em;
-	max-height: 3em;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
+	white-space: normal !important;
+	-webkit-line-clamp: 2 !important;
+	line-height: 1.5em !important;
+	max-height: 3em !important;
+	display: -webkit-box !important;
+	-webkit-box-orient: vertical !important;
 }
 
 .mdc-dialog-position-bottom .mdc-dialog__container {
