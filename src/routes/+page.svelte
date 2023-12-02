@@ -141,8 +141,8 @@
 		)
 
 		notificationService.createChannel({
-			id: 'datetasks-reminder',
-			name: 'Datetasks reminder notifications',
+			id: 'notespro-reminder',
+			name: 'Notespro reminder notifications',
 			description: 'Reminder notification channel',
 			importance: 5, // High importance
 			sound: 'smart_alarm.mp3',

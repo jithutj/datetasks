@@ -141,7 +141,7 @@
 						body: taskSaveData.desc.substring(0, 150),
 						schedule: { at: new Date(taskSaveData.remSchedule), allowWhileIdle: true },
 						extra: { type: 'reminder', todoId: todoClone._id, taskId: task.id  },
-						channelId: 'datetasks-reminder',
+						channelId: 'notespro-reminder',
 						actionTypeId: 'reminder'
 					}
 				])
@@ -663,7 +663,7 @@
 			<div class="flex justify-end px-3 items-center">
 				{#if taskSaveData.remSchedule && isGreaterThanOrEqToday(taskSaveData.remSchedule)}
 				<span class="flex items-center">
-					<Icon class="material-icons">notifications</Icon> Sheduled at: &nbsp <b>
+					<Icon class="material-icons">notifications</Icon> Scheduled at: &nbsp <b>
 						{#if isTaskDateEditChanged && taskChangeEditDate}
 							{convertToReadableDateTime(combineDateAndTime(formatDateOnly(taskChangeEditDate), taskSaveData.remSchedule))}
 						{:else if isTaskDateAddChanged && taskChangeAddDate}

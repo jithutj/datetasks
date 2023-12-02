@@ -11,13 +11,9 @@ const TitleMap: Record<string, string> = {
 export async function load({ params: { slug } }) {
     
     const notificationService = NotificationService.getInstance();
-
-    let pendings = await notificationService.getPending();
-    await tick()
-    console.log(pendings)
-
+    
     return {
         title: TitleMap[slug],
-        pendings
+        pendings: await notificationService.getPending()
     }
 }

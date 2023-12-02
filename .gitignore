@@ -3,7 +3,7 @@ node_modules
 /build
 /.svelte-kit
 /package
-/datetasks
+/notespro
 .env
 .env.*
 !.env.example

@@ -1,4 +1,4 @@
-# DATETASKS TODO APP
+# NOTESPRO TODO APP
 
 A todo app that can sort the task date wise and add or edit task for each dates. It is good for daily tasks especially for software developers..
 I invite all code geeks to contribute to this project
@@ -8,6 +8,10 @@ I invite all code geeks to contribute to this project
 - Typescript
 - Tailwind
 - Daisy-Ui
+- Capacitor (for android native impementation)
+- Material Ui (SMUI)
+- Svelte Ui library
+- Shadcn ui components (svelte)
 
 # create-datedesk todo app
 
@@ -15,7 +19,7 @@ Follow below instructions to try it in your machine.
 
 ```bash
 # create a new project in the current directory
-git clone git@github.com:jithutj/datetasks.git
+git clone git@github.com:jithutj/notespro.git
 
 # create a new project in my-app
 cd projectfolder

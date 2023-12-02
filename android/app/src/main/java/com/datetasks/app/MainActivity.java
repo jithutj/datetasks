@@ -1,4 +1,4 @@
-package com.datetasks.app;
+package com.notespro.app;
 
 import com.getcapacitor.BridgeActivity;
 

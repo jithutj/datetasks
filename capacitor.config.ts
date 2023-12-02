@@ -1,12 +1,12 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.datetasks.app',
-  appName: 'DateTask',
+  appId: 'com.notespro.app',
+  appName: 'Notespro',
   webDir: 'build',
   server: {
     androidScheme: 'https',
-    url: 'http://192.168.0.106:3001',
+    url: 'http://192.168.0.106:3000',
     cleartext: true 
   },
   plugins: {

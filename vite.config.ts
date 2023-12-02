@@ -15,8 +15,8 @@ export default defineConfig({
 			base: '/',
 			selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
 			manifest: {
-				short_name: 'DATETASKs',
-				name: 'DATETASKs',
+				short_name: 'Notespro',
+				name: 'Notespro',
 				start_url: '/',
 				scope: '/',
 				display: 'standalone',
