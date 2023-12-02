@@ -5,7 +5,7 @@ class Database {
   private static instance: Database;
   private db: PouchDB.Database;
 
-  private DBNAME = 'notespro';
+  private DBNAME = 'notesdb';
 
   private constructor() {
     // Initialize your PouchDB instance
