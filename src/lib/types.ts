@@ -12,4 +12,6 @@ export interface Task {
     remScheduleId?: number
     remSchedule?: string | null
     isRemNotified?: boolean
+    remScheduleRepeats?: boolean
+    remScheduleEvery?: string | null
 }

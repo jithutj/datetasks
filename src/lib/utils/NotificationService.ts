@@ -3,6 +3,7 @@ import type {
 	ActionPerformed,
 	ActionType,
 	Channel,
+	LocalNotificationDescriptor,
 	LocalNotificationSchema,
 	PendingResult
 } from '@capacitor/local-notifications';
@@ -84,6 +85,12 @@ export class NotificationService {
 
 	public getPending(): Promise<PendingResult> {
 		return this.localNotifications.getPending();
+	}
+
+	public cancel(notificationIds: LocalNotificationDescriptor[]): Promise<void> {
+		return this.localNotifications.cancel({
+			notifications: notificationIds
+		})
 	}
 }
 

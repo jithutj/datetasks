@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import Button, { Icon } from '@smui/button';
+	import Button, { Icon, Label } from '@smui/button';
 	import Paper, { Content, Title } from '@smui/paper';
 	import { tick } from 'svelte';
 	import Database from '$lib/Database';
 	import _ from 'lodash';
 	import type { TODO } from '$lib/types';
 	import { convertToReadableDateTime } from '$lib/utils/date';
+	import type { LocalNotificationDescriptor } from '@capacitor/local-notifications';
+	import { NotificationService } from '$lib/utils/NotificationService';
 
 	export let data;
 
@@ -72,6 +74,19 @@
 				});
 			}
 		})(data.pendings.notifications);
+
+	const cancelNotification = async (e: any, notificationId: LocalNotificationDescriptor[]) => {
+			const notificationService = NotificationService.getInstance();
+			try {
+				await notificationService.cancel(notificationId);
+				await tick();
+				// Change the text content of the Label
+				e.target.textContent = 'Cancelled';
+			} catch (err) {
+				alert("Something went wrong, can't cancel.try again");
+			}
+
+	}
 </script>
 
 <svelte:head>
@@ -84,7 +99,7 @@
 {#if notifications.length}
 	<div class="paper-container">
 		{#each notifications as { _id, _rev, tasks }}
-			{#each tasks as { id, desc, remSchedule }}
+			{#each tasks as { id, desc, remSchedule, remScheduleId }}
 				<Paper class="mb-2">
 					<Content>
 						<p class="mb-5">{_.truncate(desc, { length: 103, omission: '...' })}</p>
@@ -103,6 +118,13 @@
 						{/if}
 						{#if _rev === ''}
 							<p class="flex justify-end mt-3"><span class="text-red-500 text-xs">[Deleted note]</span></p>
+						{/if}
+						{#if remScheduleId}
+						<button class="btn btn-outline btn-accent text-red-600" on:click={(e) => remScheduleId && cancelNotification(e, [
+							{
+								id: remScheduleId
+							}
+						]) }>{ remScheduleId }Cancel</button>
 						{/if}
 					</Content>
 				</Paper>
