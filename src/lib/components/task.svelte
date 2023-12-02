@@ -26,6 +26,9 @@
 	import type { ActionPerformed, LocalNotificationSchema } from '@capacitor/local-notifications';
 	import { TimePickerModal } from 'svelte-time-picker';
 	import { fade } from 'svelte/transition';
+	import {
+		goto
+	} from '$app/navigation';
 
 	export let todos: TODO[];
 	export let todo: TODO;
@@ -124,28 +127,6 @@
 
 	$: triggerSync && persistState();
 
-	const getTaskById = async (todoId: string, taskId: number) => {
-		try {
-			const result = await db.find({
-			selector: {
-				_id: { $eq: todoId },
-			},
-			fields: ['tasks'],
-			limit: 1
-			});
-			await tick();
-			if (result.docs.length > 0) {
-				//@ts-ignore
-				return result.docs[0].tasks.find(task => task.id === taskId);
-			} else {
-				// Task not found
-				return null;
-			}
-		} catch (error) {
-			return null;
-		}
-	}
-
 	const scheduleNotification = async (isAdd : boolean = true, task: Task) => {
 		if (taskSaveData.remSchedule && (isAdd || (task && ('undefined' == task.remSchedule || task.remSchedule !== taskSaveData.remSchedule)))) {
 			const notificationService = NotificationService.getInstance();
@@ -167,12 +148,7 @@
 
 				notificationService.addListeners<ActionPerformed>(ListenerEvents.localNotificationActionPerformed, async (notificationAction) => {
 					if (notificationAction.actionId === 'view' && notificationAction.notification.extra.type === 'reminder') {
-						const data = await getTaskById(notificationAction.notification.extra.todoId, notificationAction.notification.extra.taskId);
-						await tick();
-						await CapDialog.alert({
-							title: data.desc.substring(0, 15),
-							message: data.desc
-						});
+						goto(`/task?todoid=${notificationAction.notification.extra.todoId}&taskid=${notificationAction.notification.extra.taskId}`);
 					}
 				});
 			}
@@ -743,7 +719,6 @@
 						textarea
 						bind:value={taskSaveData.desc}
 						label="Description"
-						class={viewMode ? 'pointer-events-none' : ''}
 					/>
 				</DialogContent>
 			</div>

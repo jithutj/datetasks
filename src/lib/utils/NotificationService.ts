@@ -3,7 +3,8 @@ import type {
 	ActionPerformed,
 	ActionType,
 	Channel,
-	LocalNotificationSchema
+	LocalNotificationSchema,
+	PendingResult
 } from '@capacitor/local-notifications';
 import { tick } from 'svelte';
 
@@ -70,15 +71,19 @@ export class NotificationService {
 		return;
 	}
 
-  public createChannel(options: Channel) {
-      this.localNotifications.createChannel(options);
-  }
+	public createChannel(options: Channel) {
+		this.localNotifications.createChannel(options);
+	}
 
 	public scheduleNotification(data: LocalNotificationSchema[]): void {
 		// Your notification logic using LocalNotifications
 		this.localNotifications.schedule({
 			notifications: data
 		});
+	}
+
+	public getPending(): Promise<PendingResult> {
+		return this.localNotifications.getPending();
 	}
 }
 

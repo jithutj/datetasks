@@ -97,6 +97,10 @@
 									<Icon class="material-icons pr-2">home</Icon>
 									<Text>Home</Text>
 								</Item>
+								<Item href="/reminders/upcoming" on:click={() => setActive('Upcoming')} activated={menuActive === 'Upcoming'}>
+									<Icon class="material-icons pr-2">notifications</Icon>
+									<Text>Upcoming</Text>
+								</Item>
 							</List>
 						</Content>
 						<Item
