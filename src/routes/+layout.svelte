@@ -28,7 +28,7 @@
 	// Simulate an asynchronous operation (e.g., fetching data)
 	onMount(async () => {
 		// Simulate a delay (you can replace this with your actual async operation)
-		await new Promise((resolve) => setTimeout(resolve, 2000));
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
 		// After the delay, set isLoading to false to hide the loading indicator
 		isLoading = false;

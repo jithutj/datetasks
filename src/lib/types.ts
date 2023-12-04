@@ -1,17 +1,16 @@
 export type TODO = {
     _id: string
-    dateIso: string
-    tasks: Task[]
     _rev?: string
-}
-
-export interface Task {
-    id: number
+    date: string
     desc: string
     isDone: boolean
-    remScheduleId?: number
+    remScheduleId?: number | null
     remSchedule?: string | null
     isRemNotified?: boolean
     remScheduleRepeats?: boolean
     remScheduleEvery?: string | null
 }
+
+export interface GroupedByDate {
+    [date: string]: TODO[];
+  }

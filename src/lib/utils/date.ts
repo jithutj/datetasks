@@ -113,3 +113,22 @@ export function convertToReadableDateTime(input: string) {
 
 	return inputDate.toLocaleString('en-US', options);
 } 
+
+export function combineDateAndTimeDirect(d: string, t: string) {
+	const dateE = new Date(d+' '+t);
+	const timeE = dateE.toTimeString().split(" ")[0];
+	return `${d} ${timeE}`;
+}
+
+export function getBeforeDaySince(givenDate: string, count: number) {
+	const dateObj = new Date(givenDate);
+
+// Calculate the date 5 days before
+const fiveDaysBefore = new Date(dateObj);
+fiveDaysBefore.setDate(dateObj.getDate() - count);
+
+// Format the result as a string
+const formattedResult = fiveDaysBefore.toISOString().split('T')[0];
+
+return formattedResult;
+}
