@@ -46,7 +46,6 @@ export const removeObject = (currentArr: TODO[], removeId: string) => {
 }
 
 export const removeBatchObject = (currentArr: TODO[], removeIds: [string]) => {
-  console.log(removeIds)
   removeIds.forEach(objectIdToRemove => {
     _.remove(currentArr, { '_id': objectIdToRemove });
   });
