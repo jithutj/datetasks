@@ -182,3 +182,11 @@ label {
 	display: flex;
 	z-index: 999;
   }
+
+  .mdc-select {
+	width: 100%;
+  }
+  .mdc-select__anchor {
+	width: 100%;
+	min-width: 100%;
+  }

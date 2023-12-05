@@ -1,20 +1,23 @@
-import { getTaskById } from '$lib/models/task';
-import { formatDateReadable } from "$lib/utils/date";
+import Database from '$lib/Database';
+import type { TODO } from '$lib/types';
 import { tick } from "svelte";
 
 export async function load({ url }) {
     
-    const taskId: number | null = Number(url.searchParams.get('taskid')) || null;
     const todoId: string = url.searchParams.get('todoid') || '';
 
-    if (taskId && todoId) {
+    if (todoId) {
 
-        const taskData = await getTaskById(todoId, taskId);
-        await tick();
+        try {
+            const db = Database.getInstance().getDB();
+            const taskData: TODO = await db.get(todoId);
+            await tick();
 
-        return {
-            taskDate: formatDateReadable(todoId),
-            taskData
-        };   
+            return {
+                taskData
+            };   
+        }catch(err) {
+            console.log(err)
+        }
     }
 }

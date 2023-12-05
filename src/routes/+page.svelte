@@ -8,7 +8,10 @@
 		formatDateISO,
 		formatDateOnly,
 		formatDateReadable,
-		formatDateRegular
+		formatDateRegular,
+
+		isGreaterThanOrEqToday
+
 	} from '$lib/utils/date';
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
@@ -21,7 +24,7 @@
 	import { error } from '@sveltejs/kit';
 	import AirDatepicker from 'air-datepicker';
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
-	import { NotificationService } from '$lib/utils/NotificationService';
+	import { ListenerEvents, NotificationService } from '$lib/utils/NotificationService';
 	import 'air-datepicker/air-datepicker.css';
 	import Dialog, { Actions, Content, Title } from '@smui/dialog';
 	import IconButton from '@smui/icon-button';
@@ -86,6 +89,7 @@
 	let remHour: string;
 	let remMin: string = '00';
 	let remAmPm: string = 'AM';
+	let oldRemSchedule = null;
 
 	let datePickerInstance: any;
 
@@ -144,19 +148,18 @@
 	});
 	/** onMount end */
 
-	/* const scheduleNotification = async (isAdd: boolean = true, task: Task) => {
+	const scheduleNotification = async (isAdd: boolean = true, prevTodo: TODO) => {
 		const notificationService = NotificationService.getInstance();
 		if (
 			taskSaveData.remSchedule &&
 			(isAdd ||
-				(task &&
-					('undefined' == todo.remSchedule || todo.remSchedule !== taskSaveData.remSchedule)))
+				(prevTodo &&
+					(null === prevTodo.remSchedule || prevTodo.remSchedule !== taskSaveData.remSchedule)))
 		) {
 			notificationService.checkOrRequestPermission();
-
-			if (taskSaveData.remScheduleId && task && todoClone) {
-				notificationService.scheduleNotification([
-					{
+			if (taskSaveData.remScheduleId) {
+				alert(taskSaveData.remScheduleId);
+				let notifyPayload: LocalNotificationSchema = {
 						id: taskSaveData.remScheduleId,
 						title: taskSaveData.desc.substring(0, 15),
 						body: taskSaveData.desc.substring(0, 150),
@@ -167,10 +170,16 @@
 							// every: 'minute'
 						},
 						autoCancel: true,
-						extra: { type: 'reminder', todoId: todoClone._id, taskId: todo._id },
+						extra: { type: 'reminder', todoId: taskSaveData._id },
 						channelId: 'notespro-reminder',
 						actionTypeId: 'reminder'
-					}
+				}
+				if (taskSaveData.remScheduleEvery) {
+					//@ts-ignore
+					notifyPayload.schedule.every = taskSaveData.remScheduleEvery;
+				}
+				notificationService.scheduleNotification([
+					notifyPayload
 				]);
 
 				notificationService.addListeners<ActionPerformed>(
@@ -181,20 +190,24 @@
 							notificationAction.notification.extra.type === 'reminder'
 						) {
 							goto(
-								`/task?todoid=${notificationAction.notification.extra.todoId}&taskid=${notificationAction.notification.extra.taskId}`
+								`/task?todoid=${notificationAction.notification.extra.todoId}`
 							);
 						}
 					}
 				);
 			}
-
-			return;
-		}
+			await tick()
+			return true;
+		}	
 	};
 
-	const cancelNotification = async (taskData: TODO) => {
+	const cancelNotification = async () => {
 		const notificationService = NotificationService.getInstance();
-		if (taskData.remScheduleId) {
+		alert('enter 0')
+		alert(JSON.stringify(taskSaveData))
+		if (taskSaveData.remScheduleId) {
+			alert('enter 1')
+			alert(taskSaveData.remScheduleId)
 			await notificationService.cancel([
 				{
 					id: taskSaveData.remScheduleId
@@ -203,7 +216,7 @@
 			await tick();
 			taskSaveData = Object.assign({ ...taskSaveData, ...taskRemScheduleDefaults });
 		}
-	}; */
+	};
 
 	const removeDate = async (date: string) => {
 		try {
@@ -294,14 +307,25 @@
 	async function handleSaveTodo(e) {
 		if (taskSaveData.date && taskSaveData.desc) {
 			//add new - assign id
+			let isAdd = false;
 			if (taskSaveData._id === '') {
+				isAdd = true;
 				taskSaveData._id = Date.now().toString();
 			}
 			try {
+				let prevTodo: TODO | null = null;
+				if (!isAdd) {
+					prevTodo = await db.get(taskSaveData._id);
+				}
+				taskSaveData.remScheduleId = isAdd ? getRandomNumberString(7) : (prevTodo && (prevTodo.remScheduleId ?? getRandomNumberString(7)));
 				const response = await db.put(taskSaveData);
 				await tick();
 				if (response.ok) {
 					const updatedTodo = await db.get(response.id);
+					await tick();
+					//@ts-ignore
+					scheduleNotification(isAdd, prevTodo);
+					await tick()
 					taskSaveData = { ...taskSaveDataDefault };
 					if (datePickerInstance) {
 						datePickerInstance.clear();
@@ -405,39 +429,46 @@
 	bind:open={openPopup}
 	aria-labelledby={`todo-popup-title`}
 	aria-describedby={`todo-popup-content`}
-	surface$style="width: 100%; height: 100%; min-width: 100vw"
+	surface$style="width: 100%; height: 100%; min-width: 100vw; overflow-x: hidden"
 	class="z-50"
 >
 	<div class="flex justify-end">
 		<Actions>
-			<IconButton class="material-icons text-white" on:click={() => (openPopup = false)}
+			<IconButton class="material-icons text-red-500" on:click={() => (openPopup = false)}
 				>close</IconButton
 			>
 		</Actions>
 	</div>
-	<Content>
+	<Content class="!px-1">
 		<div class="px-3">
 			<div class="flex flex-col">
 				<h3 class="font-semibold">Schedule Reminder</h3>
-				<div class="flex">
-					<Select invalid={!remHour} bind:value={remHour} label="Select Hour">
-						<Option value="" />
-						{#each hours as hour}
-							<Option value={hour}>{hour}</Option>
-						{/each}
-					</Select>
-					<Select bind:value={remMin} label="Select Minute">
-						{#each minutes as min}
-							<Option value={min}>{min}</Option>
-						{/each}
-					</Select>
-					<Select bind:value={remAmPm} label="AM/PM">
-						<Option value="AM">am</Option>
-						<Option value="PM">pm</Option>
-					</Select>
+				<div class="flex flex-wrap">
+					<div class="w-5/12">
+						<Select invalid={!remHour} bind:value={remHour} label="Select Hour">
+							<Option value="" />
+							{#each hours as hour}
+								<Option value={hour}>{hour}</Option>
+							{/each}
+						</Select>
+					</div>
+					<div class="w-4/12">
+						<Select bind:value={remMin} label="Select Minute">
+							{#each minutes as min}
+								<Option value={min}>{min}</Option>
+							{/each}
+						</Select>
+					</div>
+					<div class="w-3/12">
+						<Select bind:value={remAmPm} label="AM/PM">
+							<Option value="AM">AM</Option>
+							<Option value="PM">PM</Option>
+						</Select>
+					</div>
 				</div>
 			</div>
-			<div class="flex">
+			<div class="flex items-center">
+				<div class="w-6/12">
 				<Switch
 					class="mr-3"
 					label="Repeats"
@@ -446,26 +477,29 @@
 					onLabel="ON"
 					offLabel="OFF"
 				/>
+			</div>
+			<div class="w-6/12">
 				<Select bind:value={taskSaveData.remScheduleEvery} label="Repeat Interval">
 					{#each scheduleEvery as every}
 						<Option value={every}>{every}</Option>
 					{/each}
 				</Select>
 			</div>
+			</div>
 			<div class="my-3">
 				{#if taskSaveData.remSchedule}
-					<p>Scheduled at: {convertToReadableDateTime(taskSaveData.remSchedule)}</p>
+					<p>Scheduled at: <b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b></p>
 				{/if}
 			</div>
 			<div class="flex justify-end px-3 items-end flex-col">
-				<!-- {#if taskSaveData.remSchedule && isGreaterThanOrEqToday(taskSaveData.remSchedule)}
+				{#if taskSaveData.remSchedule && isGreaterThanOrEqToday(taskSaveData.remSchedule)}
 					<div class="flex justify-center columns margins">
 						<MaterialButton
 							on:click={() => {
 								confirmPopup(
 									'Cancel Reminder',
 									'You no longer receive reminder if you press cancel?',
-									() => cancelNotification(taskSaveData),
+									() => cancelNotification(),
 									'No',
 									'Cancel'
 								);
@@ -474,7 +508,7 @@
 					</div>
 				{:else}
 					<span>No Reminder Set</span>
-				{/if} -->
+				{/if}
 			</div>
 			<div class="flex justify-between items-end w-full my-7">
 				<div class="flex items-end">
