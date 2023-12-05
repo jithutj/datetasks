@@ -5,12 +5,13 @@
 	//@ts-ignore
 	import { Content as AccordionContent } from '@smui-extra/accordion';
 
-	import IconButton from '@smui/icon-button';
+	import IconButton, { Icon } from '@smui/icon-button';
 	import { default as MaterialMenu } from '@smui/menu';
 	import List, { Item, Text, Meta, Graphic } from '@smui/list';
 	import Checkbox from '@smui/checkbox';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index';
 	import { goto } from '$app/navigation';
+	import { isGreaterThanOrEqToday } from '$lib/utils/date';
 
 	/** parent props - two way binding */
 	export let todo: TODO;
@@ -45,6 +46,9 @@
 							}}
 							class="w-full">{todo.desc}</Text
 						>
+						{#if (todo.remSchedule && isGreaterThanOrEqToday(todo.remSchedule))}
+							<Icon class="material-icons text-green-500 text-base">notifications</Icon>
+						{/if}
 						<Meta>
 							<Menu placement="end" gutter={5} size="xs" class="bg-transparent p-0 border-none">
 								<IconButton slot="control" class="material-icons pr-0 text-right"

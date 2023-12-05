@@ -73,7 +73,7 @@
 						>
 					</BottomSection>
 					<BottomSection class="flex-1 p-3 justify-right-forced">
-						<IconButton class="material-icons" aria-label="Search">search</IconButton>
+						<IconButton id="search-icon" class="material-icons" aria-label="Search">search</IconButton>
 					</BottomSection>
 				</BottomAppBar>
 

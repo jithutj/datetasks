@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TaskComponent, Database, Popup, confirmPopup, type todoTypes } from '$lib';
+	import { TaskComponent, Database, Popup, confirmPopup, type todoTypes, SearchPopup } from '$lib';
 	import type { GroupedByDate, TODO } from '$lib/types';
 	import {
 		combineDateAndTime,
@@ -92,11 +92,13 @@
 	// Array for minutes (00 to 59)
 	let minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-	let remHour: string;
+	let remHour: string | null;
 	let remMin: string = '00';
 	let remAmPm: string = 'AM';
 
 	let datePickerInstance: any;
+
+	let isSearchPopupOpen = false; 
 
 	$: if (taskSaveData.date && remHour && remMin && remAmPm) {
 		const remScheduleTime = `${remHour}:${remMin} ${remAmPm}`;
@@ -158,11 +160,14 @@
 			taskSaveData.remSchedule &&
 			(isAdd ||
 				(prevTodo &&
-					(null === prevTodo.remSchedule || prevTodo.remSchedule !== taskSaveData.remSchedule)))
+					(null === prevTodo.remSchedule 
+					|| prevTodo.remSchedule !== taskSaveData.remSchedule
+					|| prevTodo.remScheduleRepeats !== taskSaveData.remScheduleRepeats
+					|| prevTodo.remScheduleEvery !== taskSaveData.remScheduleEvery
+					)))
 		) {
 			notificationService.checkOrRequestPermission();
 			if (taskSaveData.remScheduleId) {
-				alert(taskSaveData.remScheduleId);
 				let notifyPayload: LocalNotificationSchema = {
 					id: taskSaveData.remScheduleId,
 					title: taskSaveData.desc.substring(0, 15),
@@ -203,19 +208,17 @@
 
 	const cancelNotification = async () => {
 		const notificationService = NotificationService.getInstance();
-		alert('enter 0');
-		alert(JSON.stringify(taskSaveData));
 		if (taskSaveData.remScheduleId) {
-			alert('enter 1');
-			alert(taskSaveData.remScheduleId);
 			await notificationService.cancel([
 				{
 					id: taskSaveData.remScheduleId
 				}
 			]);
-			await tick();
-			taskSaveData = Object.assign({ ...taskSaveData, ...taskRemScheduleDefaults });
-		}
+			await tick()
+		} 
+		
+		remHour = null;
+		taskSaveData = Object.assign(taskSaveData, taskRemScheduleDefaults);
 	};
 
 	const removeDate = async (date: string) => {
@@ -362,6 +365,22 @@
 			});
 		}
 	}
+
+	const searchCallback = async (dpMin: any, dpMax: any) => {
+		if (dpMin.lastSelectedDate) {
+			dpMax.lastSelectedDate = formatDateOnly(dpMax.lastSelectedDate ?? dpMin.lastSelectedDate);
+			dpMin.lastSelectedDate = formatDateOnly(dpMin.lastSelectedDate); 
+
+			const { docs } = await db.find({
+				selector: { date: { $gte: dpMin.lastSelectedDate, $lte: dpMax.lastSelectedDate } },
+				sort: ['date']
+			})
+			await tick()
+			if (docs.length) {
+				data.todos = docs
+			}
+		}
+	}
 </script>
 
 <section id="dt-todo-container" class="dt-todo-container">
@@ -456,7 +475,7 @@
 >
 	<div class="flex justify-end">
 		<Actions>
-			<IconButton class="material-icons text-red-500" on:click={() => (openPopup = false)}
+			<IconButton class="material-icons !text-red-500" on:click={() => (openPopup = false)}
 				>close</IconButton
 			>
 		</Actions>
@@ -508,17 +527,16 @@
 					</Select>
 				</div>
 			</div>
-			<div class="my-3">
+			<div class="my-3 flex items-center">
 				{#if taskSaveData.remSchedule}
-					<p>
-						Scheduled at: <b class="text-green-600"
-							>{convertToReadableDateTime(taskSaveData.remSchedule)}</b
+					<p class="flex items-end">
+						<Icon class="material-icons">notifications</Icon> Scheduled at: &nbsp <b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b
 						>
 					</p>
 				{/if}
 			</div>
 			<div class="flex justify-end px-3 items-end flex-col">
-				{#if taskSaveData.remSchedule && isGreaterThanOrEqToday(taskSaveData.remSchedule)}
+				{#if taskSaveData.remSchedule}
 					<div class="flex justify-center columns margins">
 						<MaterialButton
 							on:click={() => {
@@ -529,6 +547,7 @@
 									'No',
 									'Cancel'
 								);
+								
 							}}>Cancel Reminder</MaterialButton
 						>
 					</div>
@@ -566,3 +585,4 @@
 	</Content>
 </Dialog>
 <Popup />
+<SearchPopup isSearchPopupOpen={isSearchPopupOpen} searchCallback={searchCallback} />
