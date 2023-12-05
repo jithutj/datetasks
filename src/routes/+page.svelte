@@ -9,9 +9,9 @@
 		formatDateOnly,
 		formatDateReadable,
 		formatDateRegular,
-
+		getAfterDaySince,
+		getBeforeDaySince,
 		isGreaterThanOrEqToday
-
 	} from '$lib/utils/date';
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
@@ -30,7 +30,13 @@
 	import IconButton from '@smui/icon-button';
 	import Textfield from '@smui/textfield';
 	import FormField from '@smui/form-field';
-	import { getRandomNumberString, indexResultGroupByDate, mergeNewObject, removeBatchObject, removeObject } from '$lib/utils/common';
+	import {
+		getRandomNumberString,
+		indexResultGroupByDate,
+		mergeNewObject,
+		removeBatchObject,
+		removeObject
+	} from '$lib/utils/common';
 	import Select, { Option } from '@smui/select';
 	import { Switch } from '@svelteuidev/core';
 	import { invalidateAll } from '$app/navigation';
@@ -76,9 +82,9 @@
 		todos = data.todos.length ? indexResultGroupByDate(data.todos) : [];
 	}
 
-	/* $: if (todos.length) {
+	$: if (todos.length) {
 		setMoreStartEndIds();
-	} */
+	}
 	let openPopup = false;
 	const scheduleEvery = ['week', 'day', 'month', 'hour', 'minute', 'year'];
 	// Array for hours (01 to 12)
@@ -89,7 +95,6 @@
 	let remHour: string;
 	let remMin: string = '00';
 	let remAmPm: string = 'AM';
-	let oldRemSchedule = null;
 
 	let datePickerInstance: any;
 
@@ -106,7 +111,6 @@
 	}
 
 	onMount(async () => {
-
 		setTimeout(() => {
 			notificationService.checkOrRequestPermission();
 		}, 3000);
@@ -160,27 +164,25 @@
 			if (taskSaveData.remScheduleId) {
 				alert(taskSaveData.remScheduleId);
 				let notifyPayload: LocalNotificationSchema = {
-						id: taskSaveData.remScheduleId,
-						title: taskSaveData.desc.substring(0, 15),
-						body: taskSaveData.desc.substring(0, 150),
-						schedule: {
-							at: new Date(taskSaveData.remSchedule),
-							allowWhileIdle: true,
-							repeats: taskSaveData.remScheduleRepeats
-							// every: 'minute'
-						},
-						autoCancel: true,
-						extra: { type: 'reminder', todoId: taskSaveData._id },
-						channelId: 'notespro-reminder',
-						actionTypeId: 'reminder'
-				}
+					id: taskSaveData.remScheduleId,
+					title: taskSaveData.desc.substring(0, 15),
+					body: taskSaveData.desc.substring(0, 150),
+					schedule: {
+						at: new Date(taskSaveData.remSchedule),
+						allowWhileIdle: true,
+						repeats: taskSaveData.remScheduleRepeats
+						// every: 'minute'
+					},
+					autoCancel: true,
+					extra: { type: 'reminder', todoId: taskSaveData._id },
+					channelId: 'notespro-reminder',
+					actionTypeId: 'reminder'
+				};
 				if (taskSaveData.remScheduleEvery) {
 					//@ts-ignore
 					notifyPayload.schedule.every = taskSaveData.remScheduleEvery;
 				}
-				notificationService.scheduleNotification([
-					notifyPayload
-				]);
+				notificationService.scheduleNotification([notifyPayload]);
 
 				notificationService.addListeners<ActionPerformed>(
 					ListenerEvents.localNotificationActionPerformed,
@@ -189,25 +191,23 @@
 							notificationAction.actionId === 'view' &&
 							notificationAction.notification.extra.type === 'reminder'
 						) {
-							goto(
-								`/task?todoid=${notificationAction.notification.extra.todoId}`
-							);
+							goto(`/task?todoid=${notificationAction.notification.extra.todoId}`);
 						}
 					}
 				);
 			}
-			await tick()
+			await tick();
 			return true;
-		}	
+		}
 	};
 
 	const cancelNotification = async () => {
 		const notificationService = NotificationService.getInstance();
-		alert('enter 0')
-		alert(JSON.stringify(taskSaveData))
+		alert('enter 0');
+		alert(JSON.stringify(taskSaveData));
 		if (taskSaveData.remScheduleId) {
-			alert('enter 1')
-			alert(taskSaveData.remScheduleId)
+			alert('enter 1');
+			alert(taskSaveData.remScheduleId);
 			await notificationService.cancel([
 				{
 					id: taskSaveData.remScheduleId
@@ -220,22 +220,22 @@
 
 	const removeDate = async (date: string) => {
 		try {
-		const {docs} = await db.find({
-			selector: { date }
-		});
-		await tick()
-		let ids: [] = [];
-		docs.map(doc => {
-			db.remove(doc);
+			const { docs } = await db.find({
+				selector: { date }
+			});
+			await tick();
+			let ids: [] = [];
+			docs.map((doc) => {
+				db.remove(doc);
+				//@ts-ignore
+				ids.push(doc._id);
+			});
 			//@ts-ignore
-			ids.push(doc._id)
-		})
-		//@ts-ignore
-		data.todos = removeBatchObject(data.todos, ids);
+			data.todos = removeBatchObject(data.todos, ids);
 		} catch (err) {
 			console.log(err);
 		}
-	}
+	};
 
 	const removeTodo = async (todoId: TODO['_id'], todoRev: TODO['_rev']): Promise<void> => {
 		try {
@@ -252,53 +252,68 @@
 	const getMoreDates = async (type: 'prev' | 'next' = 'prev') => {
 		switch (type) {
 			case 'next':
-				const { docs: nextDocs } = await db.find({
-					selector: { _id: { $gte: todoNextPaginationStartid } },
-					sort: [{ _id: 'asc' }],
-					limit: 5
-				});
-				await tick();
-				//@ts-ignore
-				todos = _.orderBy([...nextDocs, ...todos], ['_id']);
+				if (todoNextPaginationStartid) {
+					const { docs: nextDocs } = await db.find({
+						selector: {
+							date: {
+								$gte: todoNextPaginationStartid,
+								$lte: getAfterDaySince(todoNextPaginationStartid, 5)
+							}
+						},
+						sort: [{ date: 'asc' }]
+					});
+					await tick();
+					//@ts-ignore
+					data.todos = [...data.todos, ...nextDocs];
+				}
 				break;
 			default:
-				const { docs: prevDocs } = await db.find({
-					selector: { _id: { $lte: todoPrevPaginationStartid } },
-					sort: [{ _id: 'desc' }],
-					limit: 5
-				});
-				await tick();
-				//@ts-ignore
-				todos = _.orderBy([...todos, ...prevDocs], ['_id']);
+				if (todoPrevPaginationStartid) {
+					const { docs: prevDocs } = await db.find({
+						selector: {
+							date: {
+								$lte: todoPrevPaginationStartid,
+								$gte: getBeforeDaySince(todoPrevPaginationStartid, 5)
+							}
+						},
+						sort: [{ date: 'desc' }]
+					});
+					await tick();
+					//@ts-ignore
+					data.todos = [...prevDocs, ...data.todos];
+				}
 		}
 	};
 
 	const setMoreStartEndIds = async () => {
-		const currentStartId = _.get(todos, '[0]._id');
-		const currentEndId = _.maxBy(todos, '_id')?._id;
+		const currentStartId = _.get(data.todos, '[0].date');
+		//@ts-ignore
+		const currentEndId = _.maxBy(data.todos, 'date')?.date;
 
 		const { docs: prevDocsMore } = await db.find({
-			selector: { _id: { $lt: currentStartId } },
-			sort: [{ _id: 'desc' }],
+			selector: { date: { $lt: currentStartId } },
+			sort: [{ date: 'desc' }],
 			limit: 2
 		});
 
 		const { docs: nextDocsMore } = await db.find({
-			selector: { _id: { $gt: currentEndId } },
-			sort: [{ _id: 'asc' }],
+			selector: { date: { $gt: currentEndId } },
+			sort: [{ date: 'asc' }],
 			limit: 2
 		});
 
 		await tick();
 
-		todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0]._id : null;
-		todoNextPaginationStartid = nextDocsMore.length ? nextDocsMore[0]._id : null;
+		//@ts-ignore
+		todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0].date : null;
+		//@ts-ignore
+		todoNextPaginationStartid = nextDocsMore.length ? nextDocsMore[0].date : null;
 	};
 
 	const toggleCompleted = async (e: CustomEvent, todo: TODO): Promise<void> => {
 		try {
-		await db.put(todo);
-		}catch(err) {
+			await db.put(todo);
+		} catch (err) {
 			console.log(err);
 		}
 	};
@@ -317,7 +332,9 @@
 				if (!isAdd) {
 					prevTodo = await db.get(taskSaveData._id);
 				}
-				taskSaveData.remScheduleId = isAdd ? getRandomNumberString(7) : (prevTodo && (prevTodo.remScheduleId ?? getRandomNumberString(7)));
+				taskSaveData.remScheduleId = isAdd
+					? getRandomNumberString(7)
+					: prevTodo && (prevTodo.remScheduleId ?? getRandomNumberString(7));
 				const response = await db.put(taskSaveData);
 				await tick();
 				if (response.ok) {
@@ -325,7 +342,7 @@
 					await tick();
 					//@ts-ignore
 					scheduleNotification(isAdd, prevTodo);
-					await tick()
+					await tick();
 					taskSaveData = { ...taskSaveDataDefault };
 					if (datePickerInstance) {
 						datePickerInstance.clear();
@@ -369,10 +386,10 @@
 											class="material-icons !px-0 flex justify-end"
 											on:click={() => {
 												confirmPopup(
-												'Remove Date',
-												'All contents inside date will be lost, are you sure you want to delete date?',
-												() => removeDate(date)
-											);
+													'Remove Date',
+													'All contents inside date will be lost, are you sure you want to delete date?',
+													() => removeDate(date)
+												);
 											}}
 										>
 											delete
@@ -385,8 +402,8 @@
 									todo={data}
 									bind:taskSaveData
 									bind:openPopup
-									removeTodo={removeTodo}
-									toggleCompleted={toggleCompleted}
+									{removeTodo}
+									{toggleCompleted}
 								/>
 							{/each}
 							<div class="flex justify-end px-7">
@@ -416,10 +433,12 @@
 		{/if}
 		<div class="flexy z-20 fixed bottom-7 left-1/2 transform -translate-x-1/2">
 			<div class="margins">
-				<Fab on:click={() => {
-					taskSaveData = { ...taskSaveDataDefault };
-					openPopup = true;
-				}}>
+				<Fab
+					on:click={() => {
+						taskSaveData = { ...taskSaveDataDefault };
+						openPopup = true;
+					}}
+				>
 					<Icon tag="svg" viewBox="2 2 20 20">
 						<path fill="currentColor" d={mdiPlus} />
 					</Icon>
@@ -472,26 +491,30 @@
 			</div>
 			<div class="flex items-center">
 				<div class="w-6/12">
-				<Switch
-					class="mr-3"
-					label="Repeats"
-					bind:checked={taskSaveData.remScheduleRepeats}
-					size="md"
-					onLabel="ON"
-					offLabel="OFF"
-				/>
-			</div>
-			<div class="w-6/12">
-				<Select bind:value={taskSaveData.remScheduleEvery} label="Repeat Interval">
-					{#each scheduleEvery as every}
-						<Option value={every}>{every}</Option>
-					{/each}
-				</Select>
-			</div>
+					<Switch
+						class="mr-3"
+						label="Repeats"
+						bind:checked={taskSaveData.remScheduleRepeats}
+						size="md"
+						onLabel="ON"
+						offLabel="OFF"
+					/>
+				</div>
+				<div class="w-6/12">
+					<Select bind:value={taskSaveData.remScheduleEvery} label="Repeat Interval">
+						{#each scheduleEvery as every}
+							<Option value={every}>{every}</Option>
+						{/each}
+					</Select>
+				</div>
 			</div>
 			<div class="my-3">
 				{#if taskSaveData.remSchedule}
-					<p>Scheduled at: <b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b></p>
+					<p>
+						Scheduled at: <b class="text-green-600"
+							>{convertToReadableDateTime(taskSaveData.remSchedule)}</b
+						>
+					</p>
 				{/if}
 			</div>
 			<div class="flex justify-end px-3 items-end flex-col">

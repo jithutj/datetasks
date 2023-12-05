@@ -15,7 +15,7 @@ export function formatDateISO(dateInput: Date) {
 }
 
 export function formatDateOnly(dateInput: Date) {
-  const dataString = dateInput.toString();
+	const dataString = dateInput.toString();
 	const dateParts = dataString.split(' ');
 	const dayOfWeek = dateParts[0];
 	// Map month abbreviations to numeric values
@@ -75,7 +75,7 @@ export function combineDateAndTime(d: string, e: string) {
 	const dateE = new Date(e);
 
 	// Extract the time portion from the Date object
-	const timeE = dateE.toTimeString().split(" ")[0];
+	const timeE = dateE.toTimeString().split(' ')[0];
 
 	// Combine the date and time
 	const combinedDateTime = `${d} ${timeE}`;
@@ -112,23 +112,36 @@ export function convertToReadableDateTime(input: string) {
 	};
 
 	return inputDate.toLocaleString('en-US', options);
-} 
+}
 
 export function combineDateAndTimeDirect(d: string, t: string) {
-	const dateE = new Date(d+' '+t);
-	const timeE = dateE.toTimeString().split(" ")[0];
+	const dateE = new Date(d + ' ' + t);
+	const timeE = dateE.toTimeString().split(' ')[0];
 	return `${d} ${timeE}`;
 }
 
 export function getBeforeDaySince(givenDate: string, count: number) {
 	const dateObj = new Date(givenDate);
 
-// Calculate the date 5 days before
-const fiveDaysBefore = new Date(dateObj);
-fiveDaysBefore.setDate(dateObj.getDate() - count);
+	// Calculate the date 5 days before
+	const fiveDaysBefore = new Date(dateObj);
+	fiveDaysBefore.setDate(dateObj.getDate() - count);
 
-// Format the result as a string
-const formattedResult = fiveDaysBefore.toISOString().split('T')[0];
+	// Format the result as a string
+	const formattedResult = fiveDaysBefore.toISOString().split('T')[0];
 
-return formattedResult;
+	return formattedResult;
+}
+
+export function getAfterDaySince(givenDate: string, count: number) {
+	const dateObj = new Date(givenDate);
+
+	// Calculate the date 5 days before
+	const fiveDaysBefore = new Date(dateObj);
+	fiveDaysBefore.setDate(dateObj.getDate() + count);
+
+	// Format the result as a string
+	const formattedResult = fiveDaysBefore.toISOString().split('T')[0];
+
+	return formattedResult;
 }

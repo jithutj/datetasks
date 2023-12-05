@@ -9,13 +9,17 @@
 
 {#if data.taskData}
 <div class="paper-container">
+  <Button class="mt-5" variant="raised" on:click={ () => history.back() }> 
+    <Icon class="material-icons">arrow_back</Icon>
+    Go Back
+  </Button>
+  <Button class="mt-5" variant="raised" on:click={ () => goto('/') }> 
+      <Icon class="material-icons">home</Icon>
+      Home
+  </Button>
     <Paper>
       <Title>{formatDateReadable(data.taskData.date)}</Title>
       <Content>{data.taskData.desc}</Content>
     </Paper>
-    <Button class="mt-5" variant="raised" on:click={ () => goto('/') }> 
-        <Icon class="material-icons">arrow_back</Icon>
-        Go Back to Home
-    </Button>
   </div>
 {/if}

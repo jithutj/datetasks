@@ -1,37 +1,34 @@
-import Database from "$lib/Database";
-import { formatDateOnly, getBeforeDaySince } from "$lib/utils/date";
-import PouchDB from 'pouchdb';
-import { tick } from "svelte";
+import Database from '$lib/Database';
+import { formatDateOnly, getBeforeDaySince } from '$lib/utils/date';
+import { tick } from 'svelte';
 
-const { emit } = PouchDB;
 export async function load() {
+	const todayDate = new Date();
+	const today = formatDateOnly(todayDate);
 
-    const db = Database.getInstance().getDB();
-    const todayDate = new Date();
-    const today = formatDateOnly(todayDate);
-    
-    try {
+	try {
+		const dbInstance = Database.getInstance();
+		const db = dbInstance ? dbInstance.getDB() : null;
+		if (db) {
+			const result = await db.createIndex({
+				index: {
+					fields: ['date']
+				}
+			});
+			await tick();
 
-      const result = await db.createIndex({
-        index: {
-          fields: ['date']
-        }
-      });
-      await tick()
-
-      const { docs } = await db.find({
+			const { docs } = await db.find({
 				selector: { date: { $lte: today, $gte: getBeforeDaySince(today, 5) } },
-				sort: ['date'],
+				sort: ['date']
 			});
 
-     
-      await tick()
+			await tick();
 
-      return {
-        todos: docs
-      }
-
-    } catch (err) {
-      console.log(err);
-    }
+			return {
+				todos: docs
+			};
+		}
+	} catch (err) {
+		// console.log(err);
+	}
 }

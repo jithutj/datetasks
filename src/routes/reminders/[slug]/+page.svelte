@@ -107,14 +107,16 @@
 {#if notifications.length}
 	<div class="paper-container">
 		{#each notifications as notification}
-			{#if notification.remSchedule}
+			{#if notification.remSchedule || notification.remScheduleId}
 			<Paper class="mb-2">
 				<Content>
 					<p class="mb-5">{_.truncate(notification.desc, { length: 103, omission: '...' })}</p>
+					{#if notification.remSchedule}
 						<p class="flex items-center justify-end text-green-600 text-xs mb-4">
 							<Icon class="material-icons">notifications</Icon>
 							{convertToReadableDateTime(notification.remSchedule)}
 						</p>
+					{/if}
 					{#if notification._rev !== ''}
 						<p class="flex justify-end items-center">
 							<Button variant="outlined" on:click={() => goto(`/task?todoid=${notification._id}`)}

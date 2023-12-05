@@ -10,6 +10,7 @@
 	import List, { Item, Text, Meta, Graphic } from '@smui/list';
 	import Checkbox from '@smui/checkbox';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index';
+	import { goto } from '$app/navigation';
 
 	/** parent props - two way binding */
 	export let todo: TODO;
@@ -40,11 +41,7 @@
 						</Graphic>
 						<Text
 							on:click={() => {
-								/* viewMode = true;
-										addMode = false;
-										editMode = false;
-										taskSaveData = { ...task };
-										openPopup = true; */
+								goto(`/task?todoid=${todo._id}`)
 							}}
 							class="w-full">{todo.desc}</Text
 						>
