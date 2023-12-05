@@ -416,7 +416,10 @@
 		{/if}
 		<div class="flexy z-20 fixed bottom-7 left-1/2 transform -translate-x-1/2">
 			<div class="margins">
-				<Fab on:click={() => (openPopup = true)}>
+				<Fab on:click={() => {
+					taskSaveData = { ...taskSaveDataDefault };
+					openPopup = true;
+				}}>
 					<Icon tag="svg" viewBox="2 2 20 20">
 						<path fill="currentColor" d={mdiPlus} />
 					</Icon>
