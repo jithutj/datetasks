@@ -28,7 +28,7 @@
 	// Simulate an asynchronous operation (e.g., fetching data)
 	onMount(async () => {
 		// Simulate a delay (you can replace this with your actual async operation)
-		await new Promise((resolve) => setTimeout(resolve, 2000));
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
 		// After the delay, set isLoading to false to hide the loading indicator
 		isLoading = false;
@@ -73,7 +73,7 @@
 						>
 					</BottomSection>
 					<BottomSection class="flex-1 p-3 justify-right-forced">
-						<IconButton class="material-icons" aria-label="Search">search</IconButton>
+						<IconButton id="search-icon" class="material-icons" aria-label="Search">search</IconButton>
 					</BottomSection>
 				</BottomAppBar>
 
@@ -96,6 +96,10 @@
 								<Item href="/" on:click={() => setActive('Home')} activated={menuActive === 'Home'}>
 									<Icon class="material-icons pr-2">home</Icon>
 									<Text>Home</Text>
+								</Item>
+								<Item href="/reminders/upcoming" on:click={() => setActive('Upcoming')} activated={menuActive === 'Upcoming'}>
+									<Icon class="material-icons pr-2">notifications</Icon>
+									<Text>Upcoming</Text>
 								</Item>
 							</List>
 						</Content>

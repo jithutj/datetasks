@@ -2,6 +2,8 @@
 
 npm run build
 
+npx cap copy
+
 # Run npx cap sync
 npx cap sync
 

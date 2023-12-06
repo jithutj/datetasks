@@ -126,10 +126,71 @@ label {
 }
 
 .mdc-deprecated-list-item__text {
-	white-space: normal;
-	-webkit-line-clamp: 2;
-	line-height: 1.5em;
-	max-height: 3em;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
+	white-space: normal !important;
+	-webkit-line-clamp: 2 !important;
+	line-height: 1.5em !important;
+	max-height: 3em !important;
+	display: -webkit-box !important;
+	-webkit-box-orient: vertical !important;
 }
+
+.mdc-dialog-position-bottom .mdc-dialog__container {
+	align-items: end;
+	margin-bottom: 60%;
+}
+
+.timer-buttons-bar {
+	background-color: #4299e1 !important;
+	border-bottom-left-radius: 0.75rem;
+	border-bottom-right-radius: 0.75rem;
+  }
+  .timer-buttons-button {
+	border-radius: 0.5rem;
+	border: 1px solid #fed7d7;
+	color: #425fe1 !important;
+  }
+  .timer-buttons-button:hover {
+	background-color: #425fe1 !important;
+	color: #fff !important;
+  }
+  .timer-buttons-time {
+	background-color: #425fe1;
+	border-top-left-radius: 0.75rem;
+	border-top-right-radius: 0.75rem;
+  }
+
+  .timer-clock-container {
+	background-color: #4299e1 !important;
+  }
+  .timer-clock-container ._tp-item {
+	color: #000;
+  }
+  .timer-clock-container ._tp-item._tp-selected {
+	color: #fff !important;
+	font-weight: 800;
+  }
+
+  .popup-calendar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	z-index: 999;
+  }
+
+  .mdc-select {
+	width: 100%;
+  }
+  .mdc-select__anchor {
+	width: 100%;
+	min-width: 100%;
+  }
+
+  .smui-select--standard .mdc-menu-surface--is-open-below {
+   max-height: 250px !important;
+  }
