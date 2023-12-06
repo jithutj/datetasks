@@ -1,17 +1,13 @@
 <script lang="ts">
-	import { TaskComponent, Database, Popup, confirmPopup, type todoTypes, SearchPopup } from '$lib';
+	import { TaskComponent, Database, Popup, confirmPopup, SearchPopup } from '$lib';
 	import type { GroupedByDate, TODO } from '$lib/types';
 	import {
-		combineDateAndTime,
 		combineDateAndTimeDirect,
 		convertToReadableDateTime,
-		formatDateISO,
 		formatDateOnly,
 		formatDateReadable,
-		formatDateRegular,
 		getAfterDaySince,
 		getBeforeDaySince,
-		isGreaterThanOrEqToday
 	} from '$lib/utils/date';
 	import { onMount, tick } from 'svelte';
 	import _ from 'lodash';
@@ -21,7 +17,6 @@
 	import { mdiPlus } from '@mdi/js';
 	import Fab, { Icon } from '@smui/fab';
 	import { default as MaterialButton } from '@smui/button';
-	import { error } from '@sveltejs/kit';
 	import AirDatepicker from 'air-datepicker';
 	import AirDatelocaleEn from 'air-datepicker/locale/en';
 	import { ListenerEvents, NotificationService } from '$lib/utils/NotificationService';
@@ -29,7 +24,6 @@
 	import Dialog, { Actions, Content, Title } from '@smui/dialog';
 	import IconButton from '@smui/icon-button';
 	import Textfield from '@smui/textfield';
-	import FormField from '@smui/form-field';
 	import {
 		getRandomNumberString,
 		indexResultGroupByDate,
@@ -39,18 +33,18 @@
 	} from '$lib/utils/common';
 	import Select, { Option } from '@smui/select';
 	import { Switch } from '@svelteuidev/core';
-	import { invalidateAll } from '$app/navigation';
 	import type {
 		ActionPerformed,
-		LocalNotificationDescriptor,
 		LocalNotificationSchema
 	} from '@capacitor/local-notifications';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { navigating } from '$app/stores';
 
 	const db = Database.getInstance().getDB();
 	const notificationService = NotificationService.getInstance();
 
-	export let data;
+	let data: { todos: TODO[] } = { todos: [] };
 
 	let todos: GroupedByDate[] = [];
 	let todoPrevPaginationStartid: string | null = null;
@@ -83,8 +77,14 @@
 	}
 
 	$: if (todos.length) {
+		//@ts-ignore
 		setMoreStartEndIds();
 	}
+
+	let searchfrom: string = '';
+	let searchto: string = '';
+	
+
 	let openPopup = false;
 	const scheduleEvery = ['week', 'day', 'month', 'hour', 'minute', 'year'];
 	// Array for hours (01 to 12)
@@ -98,7 +98,7 @@
 
 	let datePickerInstance: any;
 
-	let isSearchPopupOpen = false; 
+	let isSearchPopupOpen = false;
 
 	$: if (taskSaveData.date && remHour && remMin && remAmPm) {
 		const remScheduleTime = `${remHour}:${remMin} ${remAmPm}`;
@@ -112,10 +112,47 @@
 		}
 	}
 
+	$: if($navigating) {
+		//@ts-ignore
+		searchfrom = $page.url.searchParams.get('searchfrom') ?? '';
+		//@ts-ignore
+		searchto = $page.url.searchParams.get('searchto') ?? '';
+	}
+
+	$: if (searchfrom && searchto)  {
+		searchQuery();
+	}
+
 	onMount(async () => {
 		setTimeout(() => {
 			notificationService.checkOrRequestPermission();
 		}, 3000);
+
+		try {
+			const dbInstance = Database.getInstance();
+			const db = dbInstance ? dbInstance.getDB() : null;
+			if (db) {
+				await db.createIndex({
+					index: {
+						fields: ['date']
+					}
+				});
+				await tick();
+
+				if (!searchfrom) {
+					const { docs } = await db.find({
+						selector: { date: { $lte: today, $gte: getBeforeDaySince(today, 5) } },
+						sort: ['date']
+					});
+					await tick();
+
+					//@ts-ignore
+					data.todos = docs;
+				}
+			}
+		} catch (err) {
+			// console.log(err);
+		}
 
 		notificationService.registerActionTypes([
 			{
@@ -160,11 +197,10 @@
 			taskSaveData.remSchedule &&
 			(isAdd ||
 				(prevTodo &&
-					(null === prevTodo.remSchedule 
-					|| prevTodo.remSchedule !== taskSaveData.remSchedule
-					|| prevTodo.remScheduleRepeats !== taskSaveData.remScheduleRepeats
-					|| prevTodo.remScheduleEvery !== taskSaveData.remScheduleEvery
-					)))
+					(null === prevTodo.remSchedule ||
+						prevTodo.remSchedule !== taskSaveData.remSchedule ||
+						prevTodo.remScheduleRepeats !== taskSaveData.remScheduleRepeats ||
+						prevTodo.remScheduleEvery !== taskSaveData.remScheduleEvery)))
 		) {
 			notificationService.checkOrRequestPermission();
 			if (taskSaveData.remScheduleId) {
@@ -214,9 +250,9 @@
 					id: taskSaveData.remScheduleId
 				}
 			]);
-			await tick()
-		} 
-		
+			await tick();
+		}
+
 		remHour = null;
 		taskSaveData = Object.assign(taskSaveData, taskRemScheduleDefaults);
 	};
@@ -263,7 +299,7 @@
 								$lte: getAfterDaySince(todoNextPaginationStartid, 5)
 							}
 						},
-						sort: [{ date: 'asc' }]
+						sort: [{ date: 'desc' }]
 					});
 					await tick();
 					//@ts-ignore
@@ -279,7 +315,7 @@
 								$gte: getBeforeDaySince(todoPrevPaginationStartid, 5)
 							}
 						},
-						sort: [{ date: 'desc' }]
+						sort: [{ date: 'asc' }]
 					});
 					await tick();
 					//@ts-ignore
@@ -296,17 +332,16 @@
 		const { docs: prevDocsMore } = await db.find({
 			selector: { date: { $lt: currentStartId } },
 			sort: [{ date: 'desc' }],
-			limit: 2
+			limit: 5
 		});
 
 		const { docs: nextDocsMore } = await db.find({
 			selector: { date: { $gt: currentEndId } },
 			sort: [{ date: 'asc' }],
-			limit: 2
+			limit: 5
 		});
 
 		await tick();
-
 		//@ts-ignore
 		todoPrevPaginationStartid = prevDocsMore.length ? prevDocsMore[0].date : null;
 		//@ts-ignore
@@ -366,21 +401,26 @@
 		}
 	}
 
+	async function searchQuery() {
+			const { docs } = await db.find({
+				selector: { date: { $gte: searchfrom, $lte: searchto } },
+				sort: ['date']
+			});
+			await tick();
+			
+			//@ts-ignore
+			data.todos = docs;
+		}
+
 	const searchCallback = async (dpMin: any, dpMax: any) => {
 		if (dpMin.lastSelectedDate) {
-			dpMax.lastSelectedDate = formatDateOnly(dpMax.lastSelectedDate ?? dpMin.lastSelectedDate);
-			dpMin.lastSelectedDate = formatDateOnly(dpMin.lastSelectedDate); 
-
-			const { docs } = await db.find({
-				selector: { date: { $gte: dpMin.lastSelectedDate, $lte: dpMax.lastSelectedDate } },
-				sort: ['date']
-			})
-			await tick()
-			if (docs.length) {
-				data.todos = docs
-			}
-		}
-	}
+			const maxdate = formatDateOnly(dpMax.lastSelectedDate ?? dpMin.lastSelectedDate);
+			const mindate = formatDateOnly(dpMin.lastSelectedDate);
+			dpMin.clear();
+			dpMax.clear();
+			goto(`/?searchfrom=${mindate}&searchto=${maxdate}`);
+		}	
+	};
 </script>
 
 <section id="dt-todo-container" class="dt-todo-container">
@@ -530,8 +570,8 @@
 			<div class="my-3 flex items-center">
 				{#if taskSaveData.remSchedule}
 					<p class="flex items-end">
-						<Icon class="material-icons">notifications</Icon> Scheduled at: &nbsp <b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b
-						>
+						<Icon class="material-icons">notifications</Icon> Scheduled at: &nbsp
+						<b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b>
 					</p>
 				{/if}
 			</div>
@@ -547,7 +587,6 @@
 									'No',
 									'Cancel'
 								);
-								
 							}}>Cancel Reminder</MaterialButton
 						>
 					</div>
@@ -585,4 +624,4 @@
 	</Content>
 </Dialog>
 <Popup />
-<SearchPopup isSearchPopupOpen={isSearchPopupOpen} searchCallback={searchCallback} />
+<SearchPopup {isSearchPopupOpen} {searchCallback} />
