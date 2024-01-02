@@ -3,6 +3,9 @@ export type TODO = {
     _rev?: string
     date: string
     desc: string
+    durationDay?: number | null,
+    durationHour?: number | null,
+    durationMin?: number | null,
     isDone: boolean
     remScheduleId?: number | null
     remSchedule?: string | null

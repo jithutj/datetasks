@@ -52,10 +52,12 @@
 	<Content id="confirm-popup-content">
 		<div class="flex flex-col items-center">
 			<div class="mb-3">
-				<input class="p-2 mb-1 rounded-sm w-full text-black" type="text" id="el1" placeholder="Date from" />
+				<span class="absolute">From:</span>
+					<input class="mb-1 rounded-sm w-full font-semibold" type="button" id="el1" />	
 			</div>
 			<div>
-				<input class="p-2 mb-1 rounded-sm w-full text-black" type="text" id="el2" placeholder="Date to" />
+				<span class="absolute">To:</span>
+				<input class="mb-1 rounded-sm w-full font-semibold" type="button" id="el2" />
 			</div>
 		</div>
 	</Content>

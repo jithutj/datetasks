@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import Button, { Icon, Label } from '@smui/button';
-	import Paper, { Content, Title } from '@smui/paper';
+	import Button, { Icon } from '@smui/button';
+	import Paper, { Content } from '@smui/paper';
 	import { tick } from 'svelte';
 	import Database from '$lib/Database';
 	import _ from 'lodash';

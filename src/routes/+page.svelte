@@ -13,7 +13,7 @@
 	import _ from 'lodash';
 	import { toast } from '@zerodevx/svelte-toast';
 	import '../todo.css';
-	import Accordion, { Header, Panel } from '@smui-extra/accordion';
+	import Accordion, { Header, Panel, Content as AccordionContent } from '@smui-extra/accordion';
 	import { mdiPlus } from '@mdi/js';
 	import Fab, { Icon } from '@smui/fab';
 	import { default as MaterialButton } from '@smui/button';
@@ -65,6 +65,9 @@
 		_id: '',
 		date: '',
 		desc: '',
+		durationDay: null,
+		durationHour: null,
+		durationMin: null,
 		isDone: false,
 		...taskRemScheduleDefaults
 	};
@@ -86,9 +89,20 @@
 	
 
 	let openPopup = false;
+	
+	// Array for duration hours (01 to 23)
+	let durHours = Array.from({ length: 23 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+	// Array for duration minutes (01 to 59)
+	let durMins = Array.from({ length: 59 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+	// Array for duration days (01 to 365)
+	let durDays = Array.from({ length: 365 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
 	const scheduleEvery = ['week', 'day', 'month', 'hour', 'minute', 'year'];
 	// Array for hours (01 to 12)
 	let hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
 	// Array for minutes (00 to 59)
 	let minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
@@ -99,6 +113,8 @@
 	let datePickerInstance: any;
 
 	let isSearchPopupOpen = false;
+
+	let schedulePanelOpen = false;
 
 	$: if (taskSaveData.date && remHour && remMin && remAmPm) {
 		const remScheduleTime = `${remHour}:${remMin} ${remAmPm}`;
@@ -521,78 +537,118 @@
 		</Actions>
 	</div>
 	<Content class="!px-1">
-		<div class="px-3">
-			<div class="flex flex-col">
-				<h3 class="font-semibold">Schedule Reminder</h3>
-				<div class="flex flex-wrap">
-					<div class="w-5/12">
-						<Select invalid={!remHour} bind:value={remHour} label="Select Hour">
-							<Option value="" />
-							{#each hours as hour}
-								<Option value={hour}>{hour}</Option>
-							{/each}
-						</Select>
+		<div class="accordion-container">
+			<Accordion>
+			  <Panel bind:open={schedulePanelOpen}>
+				<Header>Schedule Reminder
+					<IconButton slot="icon" toggle pressed={schedulePanelOpen}>
+						<Icon class="material-icons" on>expand_less</Icon>
+						<Icon class="material-icons">expand_more</Icon>
+					  </IconButton>
+				</Header>
+				<AccordionContent>
+					<div class="flex flex-col">
+						<div class="flex flex-wrap">
+							<div class="w-5/12">
+								<Select invalid={!remHour} bind:value={remHour} label="Select Hour">
+									<Option value="" />
+									{#each hours as hour}
+										<Option value={hour}>{hour}</Option>
+									{/each}
+								</Select>
+							</div>
+							<div class="w-4/12">
+								<Select bind:value={remMin} label="Select Minute">
+									{#each minutes as min}
+										<Option value={min}>{min}</Option>
+									{/each}
+								</Select>
+							</div>
+							<div class="w-3/12">
+								<Select bind:value={remAmPm} label="AM/PM">
+									<Option value="AM">AM</Option>
+									<Option value="PM">PM</Option>
+								</Select>
+							</div>
+						</div>
 					</div>
-					<div class="w-4/12">
-						<Select bind:value={remMin} label="Select Minute">
-							{#each minutes as min}
-								<Option value={min}>{min}</Option>
-							{/each}
-						</Select>
+					<div class="flex items-center">
+						<div class="w-6/12">
+							<Switch
+								class="mr-3"
+								label="Repeats"
+								bind:checked={taskSaveData.remScheduleRepeats}
+								size="md"
+								onLabel="ON"
+								offLabel="OFF"
+							/>
+						</div>
+						<div class="w-6/12">
+							<Select bind:value={taskSaveData.remScheduleEvery} label="Repeat Interval">
+								{#each scheduleEvery as every}
+									<Option value={every}>{every}</Option>
+								{/each}
+							</Select>
+						</div>
 					</div>
-					<div class="w-3/12">
-						<Select bind:value={remAmPm} label="AM/PM">
-							<Option value="AM">AM</Option>
-							<Option value="PM">PM</Option>
-						</Select>
+					<div class="my-3 flex items-center">
+						{#if taskSaveData.remSchedule}
+							<p class="flex items-end">
+								<Icon class="material-icons">notifications</Icon> Scheduled at: &nbsp
+								<b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b>
+							</p>
+						{/if}
 					</div>
-				</div>
-			</div>
-			<div class="flex items-center">
-				<div class="w-6/12">
-					<Switch
-						class="mr-3"
-						label="Repeats"
-						bind:checked={taskSaveData.remScheduleRepeats}
-						size="md"
-						onLabel="ON"
-						offLabel="OFF"
-					/>
-				</div>
-				<div class="w-6/12">
-					<Select bind:value={taskSaveData.remScheduleEvery} label="Repeat Interval">
-						{#each scheduleEvery as every}
-							<Option value={every}>{every}</Option>
+					<div class="flex justify-end px-3 items-end flex-col">
+						{#if taskSaveData.remSchedule}
+							<div class="flex justify-center columns margins">
+								<MaterialButton
+									on:click={() => {
+										confirmPopup(
+											'Cancel Reminder',
+											'You no longer receive reminder if you press cancel?',
+											() => cancelNotification(),
+											'No',
+											'Cancel'
+										);
+									}}>Cancel Reminder</MaterialButton
+								>
+							</div>
+						{:else}
+							<span>No Reminder Set</span>
+						{/if}
+					</div>
+				</AccordionContent>
+			  </Panel>
+			</Accordion>
+		  </div>
+		<div class="px-3 pt-7">	
+			<h3 class="font-semibold">Duration</h3>
+			<div class="flex flex-wrap">
+				<div class="w-full">
+					<Select bind:value={taskSaveData.durationDay} label="Select Days">
+						<Option value="" />
+						{#each durDays as day}
+							<Option value={day}>{day}</Option>
 						{/each}
 					</Select>
 				</div>
-			</div>
-			<div class="my-3 flex items-center">
-				{#if taskSaveData.remSchedule}
-					<p class="flex items-end">
-						<Icon class="material-icons">notifications</Icon> Scheduled at: &nbsp
-						<b class="text-green-600">{convertToReadableDateTime(taskSaveData.remSchedule)}</b>
-					</p>
-				{/if}
-			</div>
-			<div class="flex justify-end px-3 items-end flex-col">
-				{#if taskSaveData.remSchedule}
-					<div class="flex justify-center columns margins">
-						<MaterialButton
-							on:click={() => {
-								confirmPopup(
-									'Cancel Reminder',
-									'You no longer receive reminder if you press cancel?',
-									() => cancelNotification(),
-									'No',
-									'Cancel'
-								);
-							}}>Cancel Reminder</MaterialButton
-						>
-					</div>
-				{:else}
-					<span>No Reminder Set</span>
-				{/if}
+				<div class="w-6/12">
+					<Select bind:value={taskSaveData.durationHour} label="Select Hour">
+						<Option value="" />
+						{#each durHours as hour}
+							<Option value={hour}>{hour}</Option>
+						{/each}
+					</Select>
+				</div>
+				<div class="w-6/12">
+					<Select bind:value={taskSaveData.durationMin} label="Select Minute">
+						<Option value="" />
+						{#each durMins as min}
+							<Option value={min}>{min}</Option>
+						{/each}
+					</Select>
+				</div>
 			</div>
 			<div class="flex justify-between items-end w-full my-7">
 				<div class="flex items-end">

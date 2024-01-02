@@ -1,12 +1,12 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import type {
-	ActionPerformed,
 	ActionType,
 	Channel,
 	LocalNotificationDescriptor,
 	LocalNotificationSchema,
 	PendingResult
 } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import { tick } from 'svelte';
 
 export enum ListenerEvents {
@@ -34,9 +34,11 @@ export class NotificationService {
 	}
 
 	public registerActionTypes(actions: ActionType[]) {
-		this.localNotifications.registerActionTypes({
-			types: [...actions]
-		});
+		if (Capacitor.isNativePlatform()) {
+			this.localNotifications.registerActionTypes({
+				types: [...actions]
+			});
+		}
 	}
 
 	public addListeners<T>(
@@ -73,7 +75,9 @@ export class NotificationService {
 	}
 
 	public createChannel(options: Channel) {
-		this.localNotifications.createChannel(options);
+		if (Capacitor.isNativePlatform()) {
+			this.localNotifications.createChannel(options);
+		}
 	}
 
 	public scheduleNotification(data: LocalNotificationSchema[]): void {
@@ -90,7 +94,7 @@ export class NotificationService {
 	public cancel(notificationIds: LocalNotificationDescriptor[]): Promise<void> {
 		return this.localNotifications.cancel({
 			notifications: notificationIds
-		})
+		});
 	}
 }
 
