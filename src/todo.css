@@ -67,29 +67,29 @@ label {
 .blinking-border {
 	border: 2px solid transparent; /* Set your desired border style and width */
 	animation: blink 6s linear;
-    animation-iteration-count: 1;
+	animation-iteration-count: 1;
 }
 
 .task-menu-action {
-    position: relative;
-    display: inline-block;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
+	position: relative;
+	display: inline-block;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
 
-  /* Styles for the individual dots */
-  .dot {
-    pointer-events: none;
-    width: 5px;
-    height: 5px;
-    background-color: #333;
-    border-radius: 50%;
-    display: block;
-    margin: 2px 0;
-  }
+/* Styles for the individual dots */
+.dot {
+	pointer-events: none;
+	width: 5px;
+	height: 5px;
+	background-color: #333;
+	border-radius: 50%;
+	display: block;
+	margin: 2px 0;
+}
 
 .dt-todo-task-container .collapse-plus > .collapse-title:after {
 	top: 1.6rem;
@@ -109,12 +109,88 @@ label {
 	border-right: 0;
 }
 
-.svelteui-Menu-body, .svelteui-Menu-body:hover {
-	background: none;
-	padding: 0;
-	border: none;
+.svelteui-Menu-body,
+.svelteui-Menu-body:hover {
+	background: none !important;
+	padding: 0 !important;
+	border: none !important;
+	box-shadow: none !important;
 }
 
 .svelteui-MenuItem-root.itemHovered {
-	background-color: transparent;
+	background-color: transparent !important;
 }
+
+.justify-right-forced {
+	justify-content: right !important;
+}
+
+.mdc-deprecated-list-item__text {
+	white-space: normal !important;
+	-webkit-line-clamp: 2 !important;
+	line-height: 1.5em !important;
+	max-height: 3em !important;
+	display: -webkit-box !important;
+	-webkit-box-orient: vertical !important;
+}
+
+.mdc-dialog-position-bottom .mdc-dialog__container {
+	align-items: end;
+	margin-bottom: 60%;
+}
+
+.timer-buttons-bar {
+	background-color: #4299e1 !important;
+	border-bottom-left-radius: 0.75rem;
+	border-bottom-right-radius: 0.75rem;
+  }
+  .timer-buttons-button {
+	border-radius: 0.5rem;
+	border: 1px solid #fed7d7;
+	color: #425fe1 !important;
+  }
+  .timer-buttons-button:hover {
+	background-color: #425fe1 !important;
+	color: #fff !important;
+  }
+  .timer-buttons-time {
+	background-color: #425fe1;
+	border-top-left-radius: 0.75rem;
+	border-top-right-radius: 0.75rem;
+  }
+
+  .timer-clock-container {
+	background-color: #4299e1 !important;
+  }
+  .timer-clock-container ._tp-item {
+	color: #000;
+  }
+  .timer-clock-container ._tp-item._tp-selected {
+	color: #fff !important;
+	font-weight: 800;
+  }
+
+  .popup-calendar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	z-index: 999;
+  }
+
+  .mdc-select {
+	width: 100%;
+  }
+  .mdc-select__anchor {
+	width: 100%;
+	min-width: 100%;
+  }
+
+  .smui-select--standard .mdc-menu-surface--is-open-below {
+   max-height: 250px !important;
+  }

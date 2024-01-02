@@ -5,12 +5,12 @@ class Database {
   private static instance: Database;
   private db: PouchDB.Database;
 
-  private DBNAME = 'datetasks';
+  private DBNAME = 'notesdb';
 
   private constructor() {
     // Initialize your PouchDB instance
     PouchDB.plugin(PouchdbFind);
-    this.db = new PouchDB(this.DBNAME);
+    this.db = new PouchDB(this.DBNAME, {auto_compaction: true});
      
   }
 

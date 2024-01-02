@@ -1,218 +1,109 @@
 <script lang="ts">
-	import { Database } from '$lib';
+	import { confirmPopup, Database } from '$lib';
 	import type { TODO } from '$lib/types';
-	import _ from 'lodash';
-	import { formatDateReadable } from '$lib/utils/date';
-	import { ActionIcon, Button, Menu } from '@svelteuidev/core';
+	import { Menu } from '@svelteuidev/core';
 	//@ts-ignore
-	import { Trash, Pencil1, DotsVertical, Check } from 'radix-icons-svelte';
-	//@ts-ignore
-	import Accordion, { Panel, Header, Content } from '@smui-extra/accordion';
+	import { Content as AccordionContent } from '@smui-extra/accordion';
 
-	import Paper, { Subtitle } from '@smui/paper';
-	import IconButton from '@smui/icon-button';
+	import IconButton, { Icon } from '@smui/icon-button';
 	import { default as MaterialMenu } from '@smui/menu';
-  	import List, { Item, Separator, Text } from '@smui/list';
-	import Textfield from '@smui/textfield';
-	import HelperText from '@smui/textfield/helper-text';
-	import { Label, default as MateriaButton } from '@smui/button';
+	import List, { Item, Text, Meta, Graphic } from '@smui/list';
 	import Checkbox from '@smui/checkbox';
-	import Dialog, { Title, Content as DialogContent, Actions } from '@smui/dialog';
+	import * as ContextMenu from '$lib/components/ui/context-menu/index';
+	import { goto } from '$app/navigation';
+	import { isGreaterThanOrEqToday } from '$lib/utils/date';
 
+	/** parent props - two way binding */
 	export let todo: TODO;
-	export let isOpen: boolean;
-	export let containerId: string;
-	export let removeTodo: (todoId: TODO['_id']) => void 
+	export let openPopup: boolean;
+	export let taskSaveData: TODO;
+	export let removeTodo: (todoId: TODO['_id'], todoRev: TODO['_rev']) => {};
+	export let toggleCompleted: (e: CustomEvent, todo: TODO) => {};
+	/** // parent props */
 
 	const db = Database.getInstance().getDB();
-
-	let editMode: boolean = false;
-	let editId: number = 0;
-	let editIds: number[] = []; // inline edit ids
-	let inlineLastEditId: number  = 0;
-	let textElem: { [key: number]: HTMLTextAreaElement } = {};
-	let todoClone: TODO = todo;
-	let triggerSync = false;
-	let todoDesc = '';
-
-	function scrollToBottom() {
-		const container = document.getElementById(containerId);
-		//@ts-ignore
-		container.scrollTop = container.scrollHeight;
-  	}
-
-	const persistState = async () => {
-		try {
-			const { rev } = await db.put(todoClone);
-			todoClone._rev = rev;
-			todo = todoClone;
-			triggerSync = false;
-			if (editMode) {
-				todoDesc = '';
-				editMode = false;
-				editId = 0;
-			}
-			if (inlineLastEditId) {
-				editIds = _.without(editIds, inlineLastEditId);
-			}
-		} catch (err) {
-			console.log(err);
-			alert('failed persist storage syncing')
-		}	
-	}
-
-	$: triggerSync && persistState()
-
-	const addTask = () => {
-		if (!todoDesc) return
-		todoClone = todo;
-        const tasks = todoClone.tasks;
-        let lastId = tasks.length && tasks.length > 1 ? tasks[tasks.length - 1].id
-            : (tasks.length ? tasks[0].id : 0);
-
-		todoClone.tasks = [...tasks, { id: lastId + 1, desc: todoDesc, isDone: false }]
-        todoDesc = ''
-		triggerSync = true;
-	};
-
-	const updateTask = (taskid: number = 0, desc: string = '') => {
-		todoClone = todo;
-		//inline updation
-		if (taskid) {
-			const index = todoClone.tasks.findIndex(task => task.id === taskid)
-			todoClone.tasks[index].desc = desc;
-		} else {
-			const index = todoClone.tasks.findIndex(task => task.id === editId)
-			todoClone.tasks[index].desc = todoDesc;
-		}
-		triggerSync = true;
-	}
-
-	const removeTask = () => {
-		todoClone = todo;
-		const index = todo.tasks.findIndex(task => task.id === editId)
-		todoClone.tasks.splice(index, 1);
-		triggerSync = true;
-	}
-
-	const toggleCompleted = (e: CustomEvent): void => {
-		//@ts-ignore
-		const taskid = parseInt(e.target.value);
-        const index = todo.tasks.findIndex(task => task.id === taskid)
-        todoClone.tasks[index].isDone = !todo.tasks[index].isDone;
-		triggerSync = true;
-	};
-
-	const toggleTaskMenu = (e: MouseEvent) => {
-		//@ts-ignore
-		const target = e.target.getAttribute('data-target');
-		//@ts-ignore
-		const targetEl = document.getElementById(target);
-		//@ts-ignore
-		targetEl.classList.toggle('hidden');
-		//@ts-ignore
-		targetEl.classList.toggle('flex');
-	}
-
-	$: openPopup = editMode;
 </script>
-	  <Panel bind:open={ isOpen }>
-		<Header>
-			<div class="flex items-center">
-				<div class="w-11/12">
-					{formatDateReadable(todo.dateIso)}
-				</div>
-				<div class="w-1/12">
-				<IconButton class="material-icons" on:click={() => { removeTodo(todo._id)}}>
-						delete
-					</IconButton>
-				</div> 
-			</div>
-		</Header>
-		<Content>
-			<div class="paper-container dt-todo-task-container">
-			{#each todo.tasks as task, i (task.id)}
-			
-				<Paper class={`mb-4 ${task.isDone && 'task-done'}`}>
-					<Subtitle class="flex items-center">
-						<div class="w-1/12">
-							<div class="w-1/12">
-								<Checkbox
-									on:click={(e) => toggleCompleted(e)}
-									value={task.id}
-									bind:checked={task.isDone}
-								/>
-							</div>
-						</div>
-						<div class="w-10/12">
-							{task.desc}
-						</div>
-						<div class="w-1/12">
-						<Menu
-							placement="end"
-							gutter={5}
-							size="xs"
-							class="bg-transparent p-0 border-none"
+
+<AccordionContent class="!px-0">
+	<div class="dt-todo-task-container">
+		<ContextMenu.Root>
+			<List class={`mb-2 task-list ${todo.isDone && 'task-done'}`}>
+				<ContextMenu.Trigger>
+					<Item class="flex items-center">
+						<Graphic>
+							<Checkbox
+								on:click={(e) => {
+									todo.isDone = !todo.isDone;
+									toggleCompleted(e, todo);
+								}}
+								value={todo._id}
+								bind:checked={todo.isDone}
+							/>
+						</Graphic>
+						<Text
+							on:click={() => {
+								goto(`/task?todoid=${todo._id}`)
+							}}
+							class="w-full">{todo.desc}</Text
 						>
-							<IconButton slot="control" class="material-icons"
-								>more_vert</IconButton
-							  >
-							<Menu.Item class="p-0">
-								<MaterialMenu static>
-									<List>
-										<Item on:SMUI:action={() => {
-											editMode = true;
-											editId = task.id;
-											todoDesc = task.desc;
-										}}>
-										<Text>Edit</Text>
-										</Item>
-										<Item on:SMUI:action={() => {
-											editId = task.id
-											removeTask();
-										}}>
-										<Text>Delete</Text>
-										</Item>
-									</List>
-								</MaterialMenu>
-							</Menu.Item>
-						</Menu>
-						</div>
-					</Subtitle>
-				</Paper>
-				
-			{/each}
-		</div>
-		<div class="flex justify-end">
-			<MateriaButton color="primary" variant="unelevated" on:click={() => { openPopup = true } }>
-				Add
-			</MateriaButton> 
-		</div>
-		 
-		<Dialog
-			bind:open={openPopup}
-			aria-labelledby={`todo-${todo._id}-popup-title`}
-			aria-describedby={`todo-${todo._id}-popup-content`}
-			surface$style="width: 80%; max-width: calc(100vw - 32px);"
-			>
-			<Title id={`todo-${todo._id}-popup-title`}>
-				{formatDateReadable(todo._id)}
-			</Title>
-			<DialogContent id={`todo-${todo._id}-popup-content`} class="mt-10">
-				<Textfield
-					style="width: 100%;"
-					helperLine$style="width: 100%;"
-					textarea
-					bind:value={todoDesc}
-					label="Description"
-				>
-				</Textfield>
-			</DialogContent>
-			<Actions>
-				<MateriaButton action="accept" on:click={() => editMode ? updateTask() : addTask ()}>
-					<Label>{ editMode ? 'Update' : 'Add' }</Label>
-				</MateriaButton>
-			</Actions>
-			</Dialog>
-		</Content>
-	  </Panel>
+						{#if (todo.remSchedule && isGreaterThanOrEqToday(todo.remSchedule))}
+							<Icon class="material-icons text-green-500 text-base">notifications</Icon>
+						{/if}
+						<Meta>
+							<Menu placement="end" gutter={5} size="xs" class="bg-transparent p-0 border-none">
+								<IconButton slot="control" class="material-icons pr-0 text-right"
+									>more_vert</IconButton
+								>
+
+								<Menu.Item class="p-0">
+									<MaterialMenu static>
+										<List>
+											<Item
+												on:SMUI:action={() => {
+													taskSaveData = { ...todo };
+													openPopup = true;
+												}}
+											>
+												<Text>Edit</Text>
+											</Item>
+											<Item
+												on:SMUI:action={() => {
+													confirmPopup('Remove Note', 'Are you sure you want to delete?', () =>
+														removeTodo(todo._id, todo._rev)
+													);
+												}}
+											>
+												<Text>Delete</Text>
+											</Item>
+										</List>
+									</MaterialMenu>
+								</Menu.Item>
+							</Menu>
+						</Meta>
+					</Item>
+				</ContextMenu.Trigger>
+				<ContextMenu.Content>
+					<ContextMenu.Item
+						on:click={() => {
+							/* viewMode = false;
+									addMode = false;
+									if (!editMode || editId !== todo._id) {
+										editMode = true;
+										editId = todo._id;
+										taskSaveData = { ...task };
+									}
+									openPopup = true; */
+						}}>Edit</ContextMenu.Item
+					>
+					<ContextMenu.Item
+						on:click={() => {
+							confirmPopup('Remove Note', 'Are you sure you want to delete?', () =>
+								removeTodo(todo._id, todo._rev)
+							);
+						}}>Delete</ContextMenu.Item
+					>
+				</ContextMenu.Content>
+			</List>
+		</ContextMenu.Root>
+	</div>
+</AccordionContent>
