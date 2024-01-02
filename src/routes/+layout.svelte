@@ -8,7 +8,7 @@
 	import IconButton from '@smui/icon-button';
 	import Drawer, { Content, Header, Title as DrawerTitle, Subtitle } from '@smui/drawer';
 	import List, { Item, Text } from '@smui/list';
-	import Fab, { Icon } from '@smui/fab';
+	import { Icon } from '@smui/fab';
 	import BottomAppBar, { Section as BottomSection, AutoAdjust } from '@smui-extra/bottom-app-bar';
 	import CircularProgress from '@smui/circular-progress';
 	// $: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';

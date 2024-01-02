@@ -61,6 +61,26 @@
         {/if}
         </div>
       {/if}
+
+      
+      <p class="pb-4 italic">Duration: 
+        {#if (value.durationDay || value.durationHour || value.durationMin)}
+        {#if value.durationDay}
+          <span>{value.durationDay / 1}d: </span>
+        {/if}
+        {#if value.durationHour}
+          <span>{value.durationHour / 1}h: </span>
+        {/if}
+        {#if value.durationMin}
+          <span>{value.durationMin}m</span>
+        {:else if value.durationHour && !value.durationMin}
+          <span>00m</span>
+        {/if}
+        {:else}
+          <span>N/A</span>
+        {/if}
+      </p>
+      
       <p>{value.desc}</p>
     </Content>
   </Paper>
